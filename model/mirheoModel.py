@@ -37,7 +37,7 @@ def run_Poiseuille(*,
     # Set output path
     folder, name = out[0], out[1]
 
-    print(p)
+    #print(p)
     #print(folder+ name)
 
     dt=0.001

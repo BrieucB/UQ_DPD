@@ -1,0 +1,6 @@
+_korali_result_cmaes/gen00000000.json
+_korali_result_cmaes/latest
+model/__pycache__/mirheoModel.cpython-310.pyc
+model/__pycache__/posteriorModel.cpython-310.pyc
+stress/*
+profiling.json

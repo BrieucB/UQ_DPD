@@ -11,11 +11,10 @@ def F(s,T):
   L=8
   h=L
   Fx=0.5
+  rhow = 8.0
 
   def quadratic_func(y, eta):
       return ((Fx*h)/(2*eta))*y*(1-y/h)
-
-  kB=1.380649e-23
 
   # read parameters from Korali
   a = s["Parameters"][0]
@@ -34,8 +33,9 @@ def F(s,T):
 
   for Ti in T:
     # Export the simulation parameters
-    simu_param={'m':1.0, 'nd':8, 'rc':1, 'L':L, 'shear_rate':shear_rate, 't_dump_every':0.01}
-    dpd_param={'a':a, 'gamma':gamma, 'kBT':kB*(Ti+273), 'power':0.5}
+    simu_param={'m':1.0, 'nd':rhow, 'rc':1, 'L':L, 'shear_rate':shear_rate, 't_dump_every':0.01}
+    #dpd_param={'a':a, 'gamma':gamma, 'kBT':kB*(Ti+273), 'power':0.5}
+    dpd_param={'a':a, 'gamma':gamma, 'kBT':0.01, 'power':0.5}
     p={'simu':simu_param, 'dpd':dpd_param}
 
     # Set output file
@@ -61,16 +61,30 @@ def F(s,T):
 
     eta=popt[0]
 
+    #UNITS
+    rho_water = 997
+    kb = 1.3805e-23
+    #T0 = 298.15
+
+    ul = 35e-9
+    um = rho_water*ul**3/rhow
+    ue = 100*kb*(Ti+273)
+    ut = np.sqrt(um*ul**2/ue)
+
+    # viscosity is in kg . m^-1 . s^-1
+    u_eta=um/(ul*ut) 
+
     # Output the result
-    s["Reference Evaluations"] += [eta]
+    s["Reference Evaluations"] += [eta*u_eta]
     s["Standard Deviation"] += [sig]
 
 def getReferenceData():
   import numpy as np
-  data=np.loadtxt('/home/rio/Workspace/uq_force_field/shear_RBC_v2-20240221T122910Z-001/shear_RBC_v2/shear_RBC/data_T_µ.dat.csv')
+  data=np.loadtxt('data_T_µ.dat.csv')
+  
   return list(data[::10,1])
 
 def getReferencePoints():
   import numpy as np
-  data=np.loadtxt('/home/rio/Workspace/uq_force_field/shear_RBC_v2-20240221T122910Z-001/shear_RBC_v2/shear_RBC/data_T_µ.dat.csv')
+  data=np.loadtxt('data_T_µ.dat.csv')
   return list(data[::10,0])
