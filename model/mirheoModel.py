@@ -26,7 +26,7 @@ def run_Poiseuille(*,
     nd = p['simu']['nd']
     rc = p['simu']['rc']
     L = p['simu']['L']
-    shear_rate = p['simu']['shear_rate']
+    Fx = p['simu']['Fx']
 
     # Collect DPD parameters
     a=p['dpd']['a']
@@ -46,7 +46,7 @@ def run_Poiseuille(*,
     Lx = L #16.0 #32.0
     Ly = 2*L #32.0 #64.0
     Lz = 2*L #32.0 #64.0
-    domain = (Lx,Ly,Lz)				#domain
+    domain = (Lx,Ly,Lz)	# domain
     stslik = 100
     nsteps = 400000
     nevery = int(nsteps/stslik)
@@ -62,7 +62,7 @@ def run_Poiseuille(*,
     u.registerInteraction(dpd_wat)
     u.setInteraction(dpd_wat, water, water)
 
-    vv = mir.Integrators.VelocityVerlet_withPeriodicForce('vv', force=0.5, direction='x')
+    vv = mir.Integrators.VelocityVerlet_withPeriodicForce('vv', force=Fx, direction='x')
     u.registerIntegrator(vv)
     u.setIntegrator(vv, water)
 
