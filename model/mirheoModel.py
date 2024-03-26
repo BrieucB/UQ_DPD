@@ -37,7 +37,11 @@ def run_Poiseuille(*,
     # Set output path
     folder, name = out[0], out[1]
 
-    #print(p)
+    rank = comm.Get_rank()
+
+    if rank == 0:
+        print(p)
+        
     #print(folder+ name)
 
     dt=0.001
@@ -48,7 +52,7 @@ def run_Poiseuille(*,
     Lz = 2*L #32.0 #64.0
     domain = (Lx,Ly,Lz)	# domain
     stslik = 100
-    nsteps = 400000
+    nsteps = 40000
     nevery = int(nsteps/stslik)
 
     u = mir.Mirheo(ranks, domain, debug_level=0, log_filename='log', no_splash=True, comm_ptr=MPI._addressof(comm))

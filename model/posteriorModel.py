@@ -8,10 +8,10 @@ def F(s,T):
   from mpi4py import MPI
   from scipy.optimize import curve_fit
 
-  L = 12
+  L = 8
   h = L
   Fx = 0.5
-  rho_s = 8.0
+  rho_s = 3.0
   kBT_s = 0.01
 
   def quadratic_func(y, eta):
@@ -20,7 +20,8 @@ def F(s,T):
   # read parameters from Korali
   a = s["Parameters"][0]
   gamma = s["Parameters"][1]
-  sig = s["Parameters"][2]
+  power = s["Parameters"][2]
+  sig = s["Parameters"][3]
 
   # Read the MPI Comm assigned by Korali to feed it to the Mirheo simulation
   # If running on stand alone, use standard MPI communicator
@@ -42,7 +43,7 @@ def F(s,T):
     # Export the simulation parameters
     simu_param={'m':1.0, 'nd':rho_s, 'rc':1.0, 'L':L, 'Fx':Fx, 't_dump_every':0.01}
     #dpd_param={'a':a, 'gamma':gamma, 'kBT':kB*(Ti+273), 'power':0.5}
-    dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':0.5}
+    dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':power}
     p={'simu':simu_param, 'dpd':dpd_param}
 
     # Set output file
@@ -74,8 +75,6 @@ def F(s,T):
       with open("velo_prof.csv", "w") as f:
         np.savetxt(f, out.reshape(1, out.shape[0]))
 
-    s["error_fit"] += [float(np.sqrt(np.diag(pcov))[0])]
-
     #UNITS
     rho_water = 997 # kg/m^3 
     kb = 1.3805e-23 # S.I  
@@ -91,10 +90,12 @@ def F(s,T):
 
     #print("um:", um, "ue:", ue, "ut:", ut, "u_eta:", u_eta)
 
-    # Output the result
+    # Output the result 
     s["Reference Evaluations"] += [eta*u_eta]
-    # s["Reference Evaluations"] += [eta]
     s["Standard Deviation"] += [sig]
+
+    # Compute the error and store it 
+    s["error_fit"] += [float(np.sqrt(np.diag(pcov))[0])*u_eta]
 
 def getReferenceData():
   import numpy as np
@@ -122,14 +123,14 @@ def main(argv):
   parser = argparse.ArgumentParser()
   parser.add_argument('--a', type=float, default=False)
   parser.add_argument('--gamma', type=float, default=False)
-  parser.add_argument('--sigma', type=float, default=False)
+  parser.add_argument('--power', type=float, default=False)
 
   args = parser.parse_args(argv)
 
-  s={"Parameters":[0,0,0]}
+  s={"Parameters":[0,0,0,0.5]}
   s["Parameters"][0]=args.a
   s["Parameters"][1]=args.gamma
-  s["Parameters"][2]=args.sigma
+  s["Parameters"][2]=args.power
 
   data=np.loadtxt('../data_T_µ.dat.csv')
 
@@ -141,7 +142,7 @@ def main(argv):
   rank = comm.Get_rank()
 
   if rank == 0:
-    print("T:", T, "s[\"Reference Evaluations\"]:", s["Reference Evaluations"], "s[\"error_fit\"]:", s["error_fit"])
+    print("T:", T, "s[\"Reference Evaluations\"]:", s["Reference Evaluations"], "s[\"error_fit\"]:", s["error_fit"][0]/s["Reference Evaluations"][0])
 
 
 if __name__ == '__main__':
