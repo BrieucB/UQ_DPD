@@ -11,3 +11,6 @@ model/test_posteriorModel.py
 model/velo_prof.csv
 checkup.ipynb
 .vscode/settings.json
+model/__pycache__/mirheoModel.cpython-310.pyc
+model/__pycache__/posteriorModel.cpython-310.pyc
+model/parameters

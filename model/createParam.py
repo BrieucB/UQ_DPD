@@ -2,8 +2,8 @@
 import sys
 import pickle
 
-def create_param(nd, L, a, gamma, kBT, power, shear_rate):
-    simu_param={'m':1, 'nd':nd, 'rc':1, 'L':L, 'shear_rate':shear_rate, 't_dump_every':0.01}
+def create_param(nd, L, a, gamma, kBT, power, Fx):
+    simu_param={'m':1, 'nd':nd, 'rc':1, 'L':L, 'Fx':Fx, 't_dump_every':0.01}
     dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT, 'power':power}
 
     p={'simu':simu_param, 'dpd':dpd_param}
@@ -20,7 +20,7 @@ def main(argv):
     parser.add_argument('--gamma', type=float, default=False)
     parser.add_argument('--kBT', type=float, default=False)
     parser.add_argument('--power', type=float, default=0.5)
-    parser.add_argument('--shear_rate', type=float,  default=1)
+    parser.add_argument('--Fx', type=float,  default=1)
 
     args = parser.parse_args(argv)
 
@@ -30,7 +30,7 @@ def main(argv):
                  gamma=args.gamma, 
                  kBT=args.kBT, 
                  power=args.power, 
-                 shear_rate=args.shear_rate)
+                 Fx=args.Fx)
 
 
 if __name__ == '__main__':

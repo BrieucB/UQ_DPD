@@ -8,7 +8,7 @@ def F(s,T):
   from mpi4py import MPI
   from scipy.optimize import curve_fit
 
-  L = 8
+  L = 16
   h = L
   Fx = 0.5
   rho_s = 3.0
@@ -80,7 +80,7 @@ def F(s,T):
     kb = 1.3805e-23 # S.I  
     #T0 = 298.15 # K
 
-    ul = 35e-9 # real/simu
+    ul = 35e-9/1.0 # real/simu : 35nm = standard length of a gas vesicle 
     um = rho_water*ul**3 / rho_s
     ue = kb*(Ti+273.15) / kBT_s
     ut = np.sqrt(um*ul**2/ue)
@@ -91,8 +91,8 @@ def F(s,T):
     #print("um:", um, "ue:", ue, "ut:", ut, "u_eta:", u_eta)
 
     # Output the result 
-    s["Reference Evaluations"] += [eta*u_eta]
-    s["Standard Deviation"] += [sig]
+    s["Reference Evaluations"] += [eta*u_eta] # translate to Pa.s
+    s["Standard Deviation"] += [sig*u_eta] # translate to Pa.s
 
     # Compute the error and store it 
     s["error_fit"] += [float(np.sqrt(np.diag(pcov))[0])*u_eta]

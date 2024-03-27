@@ -21,7 +21,7 @@ def run_Poiseuille(*,
         dump: if True, will dump simu data over time (TODO).
     """
 
-    # Collect parameters of the simulation
+    # Collect parameters of the simulation 
     m = p['simu']['m']
     nd = p['simu']['nd']
     rc = p['simu']['rc']
@@ -51,8 +51,18 @@ def run_Poiseuille(*,
     Ly = 2*L #32.0 #64.0
     Lz = 2*L #32.0 #64.0
     domain = (Lx,Ly,Lz)	# domain
+
+    D_um2_per_ms = 2.36 
+    D_m2_per_s = D_um2_per_ms * (1e-6)**2 / 1e-3    
+    print(f"Diffusion nsteps: {(L**2 / 2*D_m2_per_s )/dt}")
+
+    eta_water = 14.23644205171053 # viscosity of water at 25 Celsius in simulation units
+    D = kBT/(6*np.pi*eta_water*rc) # In simulation units
+    T_diff = L**2 / (2*D) # where D propto 1/viscosity
+    print(f"Diffusion nsteps: {T_diff/dt}")
+
     stslik = 100
-    nsteps = 40000
+    nsteps = 400000 # find a way to stop the simulation when the flow is stabilized
     nevery = int(nsteps/stslik)
 
     u = mir.Mirheo(ranks, domain, debug_level=0, log_filename='log', no_splash=True, comm_ptr=MPI._addressof(comm))
@@ -67,6 +77,8 @@ def run_Poiseuille(*,
     u.setInteraction(dpd_wat, water, water)
 
     vv = mir.Integrators.VelocityVerlet_withPeriodicForce('vv', force=Fx, direction='x')
+    # Compute momentum conservation? and compare with eq case.
+
     u.registerIntegrator(vv)
     u.setIntegrator(vv, water)
 
