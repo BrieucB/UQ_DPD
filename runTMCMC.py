@@ -19,10 +19,11 @@ e["Problem"]["Type"] = "Bayesian/Reference"
 e["Problem"]["Likelihood Model"] = "Normal"
 e["Problem"]["Reference Data"] = getReferenceData()
 
-# Configuring CMA-ES parameters
-e["Solver"]["Type"] = "Optimizer/CMAES"
-e["Solver"]["Population Size"] = 12
-e["Solver"]["Termination Criteria"]["Max Generations"] = 10
+# Configuring TMCMC parameters
+e["Solver"]["Type"] = "Sampler/TMCMC"
+e["Solver"]["Population Size"] = 5
+e["Solver"]["Target Coefficient Of Variation"] = 0.8
+e["Solver"]["Covariance Scaling"] = 0.04
 
 # Configuring the problem's random distributions
 e["Distributions"][0]["Name"] = "Prior_a"
@@ -39,25 +40,21 @@ e["Distributions"][1]["Maximum"] = +100.0
 e["Variables"][0]["Name"] = "a"
 e["Variables"][0]["Prior Distribution"] = "Prior_a"
 e["Variables"][0]["Initial Value"] = +2.5
-e["Variables"][0]["Initial Standard Deviation"] = +0.5
 
 e["Variables"][1]["Name"] = "gamma"
 e["Variables"][1]["Prior Distribution"] = "Prior_gamma"
 e["Variables"][1]["Initial Value"] = +10.0
-e["Variables"][1]["Initial Standard Deviation"] = +0.5
 
 e["Variables"][2]["Name"] = "power"
 e["Variables"][2]["Prior Distribution"] = "Prior_a"
 e["Variables"][2]["Initial Value"] = +0.5
-e["Variables"][2]["Initial Standard Deviation"] = +0.1
 
 e["Variables"][3]["Name"] = "[Sigma]"
 e["Variables"][3]["Prior Distribution"] = "Prior_a"
 e["Variables"][3]["Initial Value"] = +2.5
-e["Variables"][3]["Initial Standard Deviation"] = +0.5
 
 # Configuring output settings
-e["File Output"]["Path"] = '_korali_result_cmaes'
+e["File Output"]["Path"] = '_korali_result_tmcmc'
 e["File Output"]["Frequency"] = 1
 e["Console Output"]["Frequency"] = 1
 

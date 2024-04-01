@@ -8,11 +8,12 @@ def F(s,T):
   from mpi4py import MPI
   from scipy.optimize import curve_fit
 
-  L = 16
+  L = 10
   h = L
   Fx = 0.5
   rho_s = 3.0
   kBT_s = 0.01
+  tmax = 40
 
   def quadratic_func(y, eta):
     return ((Fx*h)/(2*eta))*y*(1-y/h)
@@ -41,7 +42,7 @@ def F(s,T):
 
   for Ti in T:
     # Export the simulation parameters
-    simu_param={'m':1.0, 'nd':rho_s, 'rc':1.0, 'L':L, 'Fx':Fx, 't_dump_every':0.01}
+    simu_param={'m':1.0, 'nd':rho_s, 'rc':1.0, 'L':L, 'Fx':Fx, 'tmax':tmax}
     #dpd_param={'a':a, 'gamma':gamma, 'kBT':kB*(Ti+273), 'power':0.5}
     dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':power}
     p={'simu':simu_param, 'dpd':dpd_param}
@@ -143,7 +144,7 @@ def main(argv):
 
   if rank == 0:
     print("T:", T, "s[\"Reference Evaluations\"]:", s["Reference Evaluations"], "s[\"error_fit\"]:", s["error_fit"][0]/s["Reference Evaluations"][0])
-
+    print("s[\"Standard Deviation\"]:", s["Standard Deviation"][0])
 
 if __name__ == '__main__':
     main(sys.argv[1:])

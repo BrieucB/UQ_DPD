@@ -27,6 +27,7 @@ def run_Poiseuille(*,
     rc = p['simu']['rc']
     L = p['simu']['L']
     Fx = p['simu']['Fx']
+    tmax = p['simu']['tmax']
 
     # Collect DPD parameters
     a=p['dpd']['a']
@@ -46,33 +47,35 @@ def run_Poiseuille(*,
 
     dt=0.001
     
-    # Instantiate Mirheo simulation
     Lx = L #16.0 #32.0
     Ly = 2*L #32.0 #64.0
     Lz = 2*L #32.0 #64.0
     domain = (Lx,Ly,Lz)	# domain
 
-    D_um2_per_ms = 2.36 
-    D_m2_per_s = D_um2_per_ms * (1e-6)**2 / 1e-3    
-    print(f"Diffusion nsteps: {(L**2 / 2*D_m2_per_s )/dt}")
-
-    eta_water = 14.23644205171053 # viscosity of water at 25 Celsius in simulation units
-    D = kBT/(6*np.pi*eta_water*rc) # In simulation units
+    D = 0.01
     T_diff = L**2 / (2*D) # where D propto 1/viscosity
-    print(f"Diffusion nsteps: {T_diff/dt}")
 
-    stslik = 100
-    nsteps = 400000 # find a way to stop the simulation when the flow is stabilized
+    stslik = 10
+    nsteps = int(tmax/dt) #400000 #int(T_diff/dt) # find a way to stop the simulation when the flow is stabilized
+    print(nsteps)
     nevery = int(nsteps/stslik)
-
-    u = mir.Mirheo(ranks, domain, debug_level=0, log_filename='log', no_splash=True, comm_ptr=MPI._addressof(comm))
+    
+    # Instantiate Mirheo simulation
+    u = mir.Mirheo(ranks, domain, debug_level=0, 
+                   log_filename='log', no_splash=True, comm_ptr=MPI._addressof(comm))
 
     water = mir.ParticleVectors.ParticleVector('water', mass = m)
     ic_water = mir.InitialConditions.Uniform(number_density = nd)
-    u.registerParticleVector(water, ic_water)                          # Register the PV and initialize its particles
+    u.registerParticleVector(water, ic_water)      # Register the PV and initialize its particles
 
     # Create and register DPD interaction with specific parameters and cutoff radius
-    dpd_wat = mir.Interactions.Pairwise('dpd_wat', rc=rc, kind="DPD", a=a, gamma=gamma, kBT=kBT, power=power)
+    dpd_wat = mir.Interactions.Pairwise('dpd_wat', 
+                                        rc=rc, 
+                                        kind="DPD", 
+                                        a=a, 
+                                        gamma=gamma, 
+                                        kBT=kBT, 
+                                        power=power)
     u.registerInteraction(dpd_wat)
     u.setInteraction(dpd_wat, water, water)
 
@@ -83,7 +86,7 @@ def run_Poiseuille(*,
     u.setIntegrator(vv, water)
 
     sample_every = nevery
-    dump_every   = int((nsteps-1)/2)
+    dump_every   = nevery #int((nsteps-1)/2)
     bin_size     = (1.0, 1.0, 1.0)
 
     #print(sample_every, dump_every, folder+name)
@@ -96,7 +99,9 @@ def run_Poiseuille(*,
                                                     ["velocities"], 
                                                     folder+name))
     
+
     u.run(nsteps, dt=dt)
+    
 
 def load_parameters(filename: str):
     import pickle
@@ -108,9 +113,12 @@ def main(argv):
     import argparse
     import os
     parser = argparse.ArgumentParser()
-    parser.add_argument('parameters', type=str, help="The file containing the parameters of the simulation.")
-    parser.add_argument('--dump', action='store_true', default=False, help="Will dump ply files if set to True.")
-    parser.add_argument('--ranks', type=int, nargs=3, default=[1,1,1], help="Number of ranks in each direction.")
+    parser.add_argument('parameters', type=str, 
+                        help="The file containing the parameters of the simulation.")
+    parser.add_argument('--dump', action='store_true', default=False, 
+                        help="Will dump ply files if set to True.")
+    parser.add_argument('--ranks', type=int, nargs=3, default=[1,1,1], 
+                        help="Number of ranks in each direction.")
     args = parser.parse_args(argv)
 
     p = load_parameters(args.parameters)
