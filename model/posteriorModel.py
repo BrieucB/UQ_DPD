@@ -9,15 +9,6 @@ def F(s,T):
   from scipy.optimize import curve_fit
   import numpy as np
 
-  # Parameters of the simulation
-  params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, tmax, pop_size
-  L = params[0]
-  h = L
-  Fx = params[1]
-  rho_s =  params[2]
-  kBT_s = params[3]
-  tmax = params[4]
-
   def quadratic_func(y, eta):
     return ((Fx*h)/(2.*eta))*y*(1.-y/h)
 
@@ -38,6 +29,25 @@ def F(s,T):
   # rank = comm.Get_rank()
   # size = comm.Get_size()
   # print(f"MPI Rank: {rank}/{size}")
+     
+  # Parameters of the simulation
+  if standalone:
+    params=np.loadtxt('../metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, tmax, pop_size
+    L = int(params[0])
+    h = L
+    Fx = params[1]
+    rho_s =  params[2]
+    kBT_s = params[3]
+    tmax = params[4]
+
+  else:
+    params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, tmax, pop_size
+    L = int(params[0])
+    h = L
+    Fx = params[1]
+    rho_s =  params[2]
+    kBT_s = params[3]
+    tmax = params[4]
 
   s["Reference Evaluations"] = []
   s["Standard Deviation"] = []
@@ -52,7 +62,7 @@ def F(s,T):
 
     # Set output file
     folder = "stress/"
-    name = 'a%.2f_gamma%.2f_Ti%.2f'%(a,gamma,Ti)
+    name = 'a%.2f_gamma%.2f_power%.2f'%(a,gamma,power)
 
     # Run the simulation
     run_Poiseuille(p=p, ranks=(1,1,1), dump=False, comm=comm, out=(folder, name))
@@ -109,7 +119,7 @@ def getReferencePoints():
   u_real=0.001 # from mPa.s to Pa.s
 
   # Turn the real data into simulation units
-  return [0.89*u_real/u_eta] # Reference data is the viscosity (0.89 mPa.s) at 25°C
+  return [0.89*u_real/u_eta] # Reference data is the viscosity (0.89 mPa.s) at 25°C \approx 14.24 in simulation units
 
 def main(argv):
   import argparse
@@ -134,7 +144,7 @@ def main(argv):
   s["Parameters"][1]=args.gamma
   s["Parameters"][2]=args.power
 
-  data=np.loadtxt('../data_T_µ.dat.csv')
+  #data=np.loadtxt('../data_T_µ.dat.csv')
 
   T=[25] #list(data[::10,0])
 
