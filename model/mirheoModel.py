@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from copy import deepcopy
 import mirheo as mir
 from mpi4py import MPI
 import numpy as np

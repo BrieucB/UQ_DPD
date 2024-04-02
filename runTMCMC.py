@@ -5,11 +5,11 @@ sys.path.append('./model')
 import korali
 from mpi4py import MPI
 from model.posteriorModel import *
+import numpy as np
 
-# s={"Parameters":[1,2,3]}
-# F(s, getReferencePoints())
-
-# print(s["Reference Evaluations"])
+# Optimization parameters
+params = np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, tmax, pop_size
+pop_size = int(params[5])
 
 e = korali.Experiment()
 
@@ -21,7 +21,7 @@ e["Problem"]["Reference Data"] = getReferenceData()
 
 # Configuring TMCMC parameters
 e["Solver"]["Type"] = "Sampler/TMCMC"
-e["Solver"]["Population Size"] = 5
+e["Solver"]["Population Size"] = pop_size
 e["Solver"]["Target Coefficient Of Variation"] = 0.8
 e["Solver"]["Covariance Scaling"] = 0.04
 

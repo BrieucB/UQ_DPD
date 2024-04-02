@@ -7,16 +7,20 @@ def F(s,T):
   import h5py
   from mpi4py import MPI
   from scipy.optimize import curve_fit
+  import numpy as np
 
-  L = 10
+  # Parameters of the simulation
+  params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, tmax, pop_size
+
+  L = params[0]
   h = L
-  Fx = 0.5
-  rho_s = 3.0
-  kBT_s = 0.01
-  tmax = 40
+  Fx = params[1]
+  rho_s =  params[2]
+  kBT_s = params[3]
+  tmax = params[4]
 
   def quadratic_func(y, eta):
-    return ((Fx*h)/(2*eta))*y*(1-y/h)
+    return ((Fx*h)/(2.*eta))*y*(1.-y/h)
 
   # read parameters from Korali
   a = s["Parameters"][0]
@@ -24,7 +28,7 @@ def F(s,T):
   power = s["Parameters"][2]
   sig = s["Parameters"][3]
 
-  # Read the MPI Comm assigned by Korali to feed it to the Mirheo simulation
+  # Read the MPI Comm assigned by Korali and feed it to the Mirheo simulation
   # If running on stand alone, use standard MPI communicator
   try:
     comm = korali.getWorkerMPIComm()

@@ -5,11 +5,11 @@ sys.path.append('./model')
 import korali
 from mpi4py import MPI
 from model.posteriorModel import *
+import numpy as np
 
-# s={"Parameters":[1,2,3]}
-# F(s, getReferencePoints())
-
-# print(s["Reference Evaluations"])
+# Optimization parameters
+params = np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, tmax, pop_size
+pop_size = int(params[5])
 
 e = korali.Experiment()
 
@@ -21,7 +21,7 @@ e["Problem"]["Reference Data"] = getReferenceData()
 
 # Configuring CMA-ES parameters
 e["Solver"]["Type"] = "Optimizer/CMAES"
-e["Solver"]["Population Size"] = 12
+e["Solver"]["Population Size"] = pop_size
 e["Solver"]["Termination Criteria"]["Max Generations"] = 100
 
 # Configuring the problem's random distributions
