@@ -1,4 +1,5 @@
 model/__pycache__/
+velocities/
 stress/
 profiling.json
 _korali_result_cmaes/

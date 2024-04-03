@@ -2,8 +2,31 @@
 
 import mirheo as mir
 from mpi4py import MPI
-import numpy as np
 import sys
+import numpy as np
+
+def kineticVisco(kBT, s, rho_s, rc, gamma, m):
+    """
+    s = power/2
+    """
+    A=(3*kBT*(s+1)*(s+2)*(s+3))/(16*np.pi*rho_s*(rc**3)*gamma)
+    B=(16*np.pi*rho_s*(rc**3)*gamma)/(5*m*(s+1)*(s+2)*(s+3)*(s+4)*(s+5))
+    return(A+B)
+
+def soundCelerity(kBT, s, rho_s, rc, gamma, m, a):
+    alpha=0.103
+    return(np.sqrt(kBT/m + 2*alpha*rc**4*a*rho_s/m**2))
+
+def timeStep(kBT, s, rho_s, rc, gamma, m, a, Fx):
+    h = rho_s**(-1/3) # Particle spacing
+    nu = kineticVisco(kBT, s, rho_s, rc, gamma, m) # Kinematic viscosity from Lucas' thesis 
+    c_s = soundCelerity(kBT, s, rho_s, rc, gamma, m, a) # Sound speed
+
+    dt1 = h**2 /(8*nu) # Viscous diffusion constraint
+    dt2 = h/(4*c_s) # Acoustic CFL constraint
+    dt3 = 0.25*np.sqrt(h/Fx) # External force constraint
+
+    return(min(dt1, dt2, dt3))
 
 def run_Poiseuille(*,
                    p: dict,
@@ -42,21 +65,16 @@ def run_Poiseuille(*,
     if rank == 0:
         print(p)
         
-    #print(folder+ name)
+    # Compute time step following Lucas' thesis
+    dt=timeStep(kBT=kBT, s=power/2., rho_s=nd, rc=rc, gamma=gamma, m=m, a=a, Fx=Fx) #0.001 # Some good criteria to choose the time step value? 
 
-    dt=0.001
-    
     Lx = L #16.0 #32.0
     Ly = 2*L #32.0 #64.0
     Lz = 2*L #32.0 #64.0
     domain = (Lx,Ly,Lz)	# domain
 
-    D = 0.01
-    T_diff = L**2 / (2*D) # where D propto 1/viscosity
-
     stslik = 10
     nsteps = int(tmax/dt) #400000 #int(T_diff/dt) # find a way to stop the simulation when the flow is stabilized
-    print(nsteps)
     nevery = int(nsteps/stslik)
     
     # Instantiate Mirheo simulation
@@ -85,7 +103,7 @@ def run_Poiseuille(*,
     u.setIntegrator(vv, water)
 
     sample_every = nevery
-    dump_every   = nevery #int((nsteps-1)/2)
+    dump_every   = nevery 
     bin_size     = (1.0, 1.0, 1.0)
 
     #print(sample_every, dump_every, folder+name)

@@ -33,12 +33,13 @@ def F(s,T):
   # Parameters of the simulation
   if standalone:
     params=np.loadtxt('../metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, tmax, pop_size
-    L = int(params[0])
+    L = int(params[0]) # Size of the simulation box in the x-direction
     h = L
-    Fx = params[1]
-    rho_s =  params[2]
-    kBT_s = params[3]
-    tmax = params[4]
+    Fx = params[1] # Force applied in the x-direction to create the Poiseuille flow
+    rho_s =  params[2] # Density of DPD particles
+    kBT_s = params[3] # Energy scale of the DPD particles
+    tmax = params[4] # Maximum simulation time (TODO: 
+    # find a criteria to stop the simulation when stationary flow is reached)
 
   else:
     params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, tmax, pop_size
@@ -53,37 +54,37 @@ def F(s,T):
   s["Standard Deviation"] = []
   s["error_fit"] = []
 
-  for Ti in T:
+  for Ti in T: # Loop over the reference points: here only one point
     # Export the simulation parameters
     simu_param={'m':1.0, 'nd':rho_s, 'rc':1.0, 'L':L, 'Fx':Fx, 'tmax':tmax}
-    #dpd_param={'a':a, 'gamma':gamma, 'kBT':kB*(Ti+273), 'power':0.5}
     dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':power}
     p={'simu':simu_param, 'dpd':dpd_param}
 
     # Set output file
-    folder = "stress/"
+    folder = "velocities/"
     name = 'a%.2f_gamma%.2f_power%.2f'%(a,gamma,power)
 
     # Run the simulation
     run_Poiseuille(p=p, ranks=(1,1,1), dump=False, comm=comm, out=(folder, name))
 
-    # Collect the result of the simulation
+    # Collect the result of the simulation: the velocity profile averaged on
+    # the last 10% of the simulation time
     f = h5py.File(folder+name+'00001.h5')
 
     # Compute the viscosity by fitting the velocity profile to a parabola
     M=np.mean(f['velocities'][:,:,:,0], axis=(0,2))
     data_neg=M[:L]
     data_pos=M[L:]
-    data=0.5*(-data_neg+data_pos)
+    data=0.5*(-data_neg+data_pos) # average the two half profiles 
 
     xmin=0.5
     xmax=L-0.5
-
     x=np.linspace(xmin, xmax, L)
 
     popt, pcov = curve_fit(quadratic_func, x, data)
     eta=popt[0]
 
+    # Save the velocity profile if running standalone
     if standalone:
       out=np.concatenate([[a, gamma, Ti, eta], data])
       with open("velo_prof.csv", "w") as f:
@@ -93,7 +94,8 @@ def F(s,T):
     s["Reference Evaluations"] += [eta] # Viscosity in simulation units
     s["Standard Deviation"] += [sig] # Viscosity in simulation units
 
-    # Compute the error and store it 
+    # Compute the error and store it: can be accessed after inference to check
+    # the quality of the fit
     s["error_fit"] += [float(np.sqrt(np.diag(pcov))[0])]
 
 def getReferenceData():
@@ -128,7 +130,7 @@ def main(argv):
   from mpi4py import MPI
 
   try:
-    shutil.rmtree('./stress')
+    shutil.rmtree('./velocities')
   except:
      pass
 
@@ -144,9 +146,7 @@ def main(argv):
   s["Parameters"][1]=args.gamma
   s["Parameters"][2]=args.power
 
-  #data=np.loadtxt('../data_T_µ.dat.csv')
-
-  T=[25] #list(data[::10,0])
+  T=[25]
 
   F(s,T)
 
@@ -154,8 +154,8 @@ def main(argv):
   rank = comm.Get_rank()
 
   if rank == 0:
-    print("T:", T, "s[\"Reference Evaluations\"]:", s["Reference Evaluations"], "s[\"error_fit\"]:", s["error_fit"][0]/s["Reference Evaluations"][0])
+    print("T:", T, "s[\"Reference Evaluations\"]:", s["Reference Evaluations"], "s[\"error_fit\"]:", 100*s["error_fit"][0]/s["Reference Evaluations"][0], "%")
     print("s[\"Standard Deviation\"]:", s["Standard Deviation"][0])
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main(sys.argv[1:]) 
