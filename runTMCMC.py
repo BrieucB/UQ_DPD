@@ -22,7 +22,7 @@ e["Problem"]["Reference Data"] = getReferenceData()
 # Configuring TMCMC parameters
 e["Solver"]["Type"] = "Sampler/TMCMC"
 e["Solver"]["Population Size"] = pop_size
-e["Solver"]["Target Coefficient Of Variation"] = 0.8
+e["Solver"]["Target Coefficient Of Variation"] = 1.0
 e["Solver"]["Covariance Scaling"] = 0.04
 
 # Configuring the problem's random distributions

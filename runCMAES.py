@@ -22,7 +22,7 @@ e["Problem"]["Reference Data"] = getReferenceData()
 # Configuring CMA-ES parameters
 e["Solver"]["Type"] = "Optimizer/CMAES"
 e["Solver"]["Population Size"] = pop_size
-e["Solver"]["Termination Criteria"]["Max Generations"] = 100
+e["Solver"]["Termination Criteria"]["Max Generations"] = 1000
 
 # Configuring the problem's random distributions
 e["Distributions"][0]["Name"] = "Prior_a"
