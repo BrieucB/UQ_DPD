@@ -66,15 +66,15 @@ def run_Poiseuille(*,
         print(p)
         
     # Compute time step following Lucas' thesis
-    dt=timeStep(kBT=kBT, s=power/2., rho_s=nd, rc=rc, gamma=gamma, m=m, a=a, Fx=Fx) #0.001 # Some good criteria to choose the time step value? 
+    dt = timeStep(kBT=kBT, s=power/2., rho_s=nd, rc=rc, gamma=gamma, m=m, a=a, Fx=Fx) 
 
-    Lx = L #16.0 #32.0
-    Ly = 2*L #32.0 #64.0
-    Lz = 2*L #32.0 #64.0
+    Lx = L 
+    Ly = 2*L 
+    Lz = 2*L
     domain = (Lx,Ly,Lz)	# domain
 
     stslik = 10
-    nsteps = int(tmax/dt) #400000 #int(T_diff/dt) # find a way to stop the simulation when the flow is stabilized
+    nsteps = int(tmax/dt)
     nevery = int(nsteps/stslik)
     
     # Instantiate Mirheo simulation
@@ -150,4 +150,4 @@ def main(argv):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main(sys.argv[1:]) 
