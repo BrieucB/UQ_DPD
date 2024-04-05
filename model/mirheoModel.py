@@ -7,7 +7,7 @@ import numpy as np
 
 def kineticVisco(kBT, s, rho_s, rc, gamma, m):
     """
-    s = power/2
+    s = power*2
     """
     A=(3*kBT*(s+1)*(s+2)*(s+3))/(16*np.pi*rho_s*(rc**3)*gamma)
     B=(16*np.pi*rho_s*(rc**3)*gamma)/(5*m*(s+1)*(s+2)*(s+3)*(s+4)*(s+5))
@@ -26,7 +26,7 @@ def timeStep(kBT, s, rho_s, rc, gamma, m, a, Fx):
     dt2 = h/(4*c_s) # Acoustic CFL constraint
     dt3 = 0.25*np.sqrt(h/Fx) # External force constraint
 
-    return(min(dt1, dt2, dt3))
+    return(min(dt1, dt2, dt3)/2.)
 
 def run_Poiseuille(*,
                    p: dict,
@@ -66,7 +66,7 @@ def run_Poiseuille(*,
         print(p)
         
     # Compute time step following Lucas' thesis
-    dt = timeStep(kBT=kBT, s=power/2., rho_s=nd, rc=rc, gamma=gamma, m=m, a=a, Fx=Fx) 
+    dt = timeStep(kBT=kBT, s=2.*power, rho_s=nd, rc=rc, gamma=gamma, m=m, a=a, Fx=Fx) 
 
     Lx = L 
     Ly = 2*L 
