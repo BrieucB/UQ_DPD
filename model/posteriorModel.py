@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 
+#from DPD_water.model.mirheoModel_v1 import *
 from mirheoModel import *
 import korali
+import sys
 
 def F(s,T):
   import h5py
   from mpi4py import MPI
   from scipy.optimize import curve_fit
   import numpy as np
+  import glob
 
   def quadratic_func(y, eta):
     return ((Fx*h)/(2.*eta))*y*(1.-y/h)
@@ -60,16 +63,18 @@ def F(s,T):
     dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':power}
     p={'simu':simu_param, 'dpd':dpd_param}
 
-    # Set output file
+    # Set output file. Mirheo seems to attribute a random number to the output name, making it
+    # difficult to find the output file. Here we specify the output folder to retrieve the file.
     folder = "velocities/"
-    name = 'a%.2f_gamma%.2f_power%.2f'%(a,gamma,power)
+    name = 'a%.2f_gamma%.2f_power%.2f/'%(a,gamma,power)
 
     # Run the simulation
     run_Poiseuille(p=p, ranks=(1,1,1), dump=False, comm=comm, out=(folder, name))
-
+    
     # Collect the result of the simulation: the velocity profile averaged on
-    # the last 10% of the simulation time
-    f = h5py.File(folder+name+'00001.h5')
+    # after the flow has reached a stationary state
+    file = glob.glob(folder+name+'prof_*.h5')[0]
+    f = h5py.File(file)
 
     # Compute the viscosity by fitting the velocity profile to a parabola
     M=np.mean(f['velocities'][:,:,:,0], axis=(0,2))
@@ -131,6 +136,8 @@ def main(argv):
 
   try:
     shutil.rmtree('./velocities')
+    shutil.rmtree('./restart')
+    shutil.rmtree('./h5')
   except:
      pass
 
