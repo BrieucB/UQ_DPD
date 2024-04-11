@@ -6,8 +6,6 @@ import sys
 import numpy as np
 import h5py
 from scipy.optimize import curve_fit
-import pandas as pd
-import os
 
 def kineticVisco(kBT, s, rho_s, rc, gamma, m):
     """
@@ -179,7 +177,7 @@ def run_Poiseuille(*,
     nsteps_sampling = int(t_sampling/dt)
     sample_every = 2 
     dump_every   = nsteps_sampling -1 
-    
+
     u.registerPlugins(mir.Plugins.createDumpAverage('field', 
                                                      [water], 
                                                      sample_every, 
