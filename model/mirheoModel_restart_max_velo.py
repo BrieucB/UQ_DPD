@@ -34,7 +34,6 @@ def timeStep(kBT, s, rho_s, rc, gamma, m, a, Fx):
 
 def get_visco(file, L, Fx):
     f = h5py.File(file)
-    L=int(L)
 
     # Compute the viscosity by fitting the velocity profile to a parabola
     M=np.mean(f['velocities'][:,:,:,0], axis=(0,2))
@@ -98,11 +97,17 @@ def run_Poiseuille(*,
     Lz = 2*L
     domain = (Lx,Ly,Lz)	# domain
 
+    # stslik = 10
+    # nsteps = int(tmax/dt)
+    # nevery = int(nsteps/stslik)
+
     runtime = 10
     nsteps_per_runtime = int(runtime/dt)
     
     output_time = 10
     nsteps_per_output = int(output_time/dt)
+
+    #print(f"dt: {dt}, nsteps_per_runtime: {nsteps_per_runtime}, nsteps_per_output: {nsteps_per_output}")    
 
     # Instantiate Mirheo simulation
     u = mir.Mirheo(nranks=ranks, domain=domain, debug_level=0, 
@@ -128,58 +133,69 @@ def run_Poiseuille(*,
     u.setInteraction(dpd_wat, water, water)
 
     vv = mir.Integrators.VelocityVerlet_withPeriodicForce('vv', force=Fx, direction='x')
+    # Compute momentum conservation? and compare with eq case.
 
     u.registerIntegrator(vv)
     u.setIntegrator(vv, water)
+
+    #print('+ Equilibrating')
+    
+    # The plugin createStats does not allow the internal creation of a directory,
+    # so we need to create it before running the simulation.
+    os.makedirs('stats/'+name, exist_ok = True) 
+    f_stats = 'stats/'+name+'stats.csv' # Where the stats of this simulation will be stored
+    
+    stats_cols = ['time', 'kBT', 'vx', 'vy', 'vz', 'maxv', 'num_particles', 'simulation_time_per_step']
         
     equilibration = True
     n_restart = 0
-    bin_size     = (1.0, 1.0, 1.0)
-
     if equilibration:
-        f_velo = 'velo/'+name+'prof_'+str(n_restart)
-        veloField = mir.Plugins.createDumpAverage(f'field{n_restart}', 
-                                                    [water], 
-                                                    2, 
-                                                    nsteps_per_output-1, 
-                                                    bin_size, 
-                                                    ["velocities"], 
-                                                    f_velo)
-        u.registerPlugins(veloField)
+        stats=mir.Plugins.createStats('stats0', every=nsteps_per_output, filename=f_stats)
+        u.registerPlugins(stats)
         u.run(nsteps_per_runtime, dt=dt)
-        u.deregisterPlugins(veloField)
+        u.deregisterPlugins(stats)
 
-        # Stop simulation if the viscosity stabilizes
-        last_visco = 100        
-        new_visco = get_visco(f_velo+'00000.h5', L, Fx)
+        # Set up the rewritable stats file
+        n_restart += 1
+        stats=mir.Plugins.createStats(f'stats{n_restart}', every=nsteps_per_output, filename=f_stats)
+        u.registerPlugins(stats)
+        u.restart(folder = 'restart/'+name)
+        u.run(nsteps_per_runtime, dt=dt)
+        u.deregisterPlugins(stats)
 
-        while np.abs(new_visco-last_visco) > 1e-2:
-            last_visco = new_visco
+        # Stop simulation if the average velocity does not increase anymore
+        last_velocity = 1
+        new_velocity = pd.read_csv(f_stats, names=stats_cols)['maxv'][0]
+
+        #while (new_velocity-last_velocity)/last_velocity > 1e-4:
+        while (new_velocity-last_velocity) > 1e-3:
+            last_velocity = new_velocity
             n_restart += 1
             
-            f_velo = 'velo/'+name+'prof_'+str(n_restart)
-            veloField = mir.Plugins.createDumpAverage(f'field{n_restart}', 
-                                                    [water], 
-                                                    2, 
-                                                    nsteps_per_output-1, 
-                                                    bin_size, 
-                                                    ["velocities"], 
-                                                    f_velo)
-            u.registerPlugins(veloField)
+            stats=mir.Plugins.createStats(f'stats{n_restart}', every=nsteps_per_output, filename=f_stats)
+            u.registerPlugins(stats)
+            
             u.restart(folder = 'restart/'+name)
             u.run(nsteps_per_runtime, dt=dt)
-            u.deregisterPlugins(veloField)
-
-            new_visco = get_visco(f_velo+'%05d.h5'%n_restart, L, Fx)
-            print('new_visco', new_visco)
+            
+            u.deregisterPlugins(stats)
+            new_velocity = pd.read_csv(f_stats, names=stats_cols)['maxv'][0]  
            
     # System is in stationary state, now we can sample the velocity profile
+    #print('+ Sampling velocity profile')
     n_restart += 1
     t_sampling = 100
     nsteps_sampling = int(t_sampling/dt)
-    sample_every = 2 
-    dump_every   = nsteps_sampling -1 
+    sample_every = 2 #int(nsteps_sampling/100) # Average 100 times the spatial velocity profile
+
+    # dump_every must include all the timesteps already computed before sampling
+    # nsteps_eq = n_restart*nsteps_per_runtime
+    # print(f"time for eq: {nsteps_eq*dt}")
+    dump_every   = nsteps_sampling -1 # + nsteps_eq # Dump 1 profile 
     
+    # print(f"run for nsteps_eq: {nsteps_eq}\nnsteps_sampling: {nsteps_sampling}\nsample_every: {sample_every}\ndump_every: {dump_every}") 
+    bin_size     = (1.0, 1.0, 1.0)
+    #print("folder+name:", folder+name)
     u.registerPlugins(mir.Plugins.createDumpAverage('field', 
                                                      [water], 
                                                      sample_every, 
@@ -188,8 +204,12 @@ def run_Poiseuille(*,
                                                      ["velocities"], 
                                                      folder+name+'prof_'))
     # Mirheo seems to append a more or less random number to the output filename. Be careful. 
-
-    u.restart(folder = 'restart/'+name)
+    
+    u.registerPlugins(mir.Plugins.createStats(f'stats{n_restart}', 
+                                              every=nsteps_per_output,
+                                               filename='stats'))
+    
+    #u.restart(folder = 'restart/'+name)
     u.run(nsteps_sampling, dt=dt)
     
 
