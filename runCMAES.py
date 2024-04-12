@@ -48,23 +48,23 @@ e["Distributions"][3]["Maximum"] = +100.0
 # Configuring the problem's variables
 e["Variables"][0]["Name"] = "a"
 e["Variables"][0]["Prior Distribution"] = "Prior_a"
-e["Variables"][0]["Initial Value"] = +40.0
-e["Variables"][0]["Initial Standard Deviation"] = +0.5
+e["Variables"][0]["Initial Value"] = +20.0
+e["Variables"][0]["Initial Standard Deviation"] = +10.0
 
 e["Variables"][1]["Name"] = "gamma"
 e["Variables"][1]["Prior Distribution"] = "Prior_gamma"
-e["Variables"][1]["Initial Value"] = +150.0
-e["Variables"][1]["Initial Standard Deviation"] = +0.5
+e["Variables"][1]["Initial Value"] = +50.0
+e["Variables"][1]["Initial Standard Deviation"] = +20.0
 
 e["Variables"][2]["Name"] = "power"
 e["Variables"][2]["Prior Distribution"] = "Prior_power"
-e["Variables"][2]["Initial Value"] = +0.25  
+e["Variables"][2]["Initial Value"] = +0.5
 e["Variables"][2]["Initial Standard Deviation"] = +0.1
 
 e["Variables"][3]["Name"] = "[Sigma]"
 e["Variables"][3]["Prior Distribution"] = "Prior_sigma"
 e["Variables"][3]["Initial Value"] = +10
-e["Variables"][3]["Initial Standard Deviation"] = +0.5
+e["Variables"][3]["Initial Standard Deviation"] = +1.0
 
 # Configuring output settings
 e["File Output"]["Path"] = '_korali_result_cmaes'
