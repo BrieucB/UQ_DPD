@@ -8,8 +8,8 @@ from model.posteriorModel import *
 import numpy as np
 
 # Optimization parameters
-params = np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, tmax, pop_size
-pop_size = int(params[5])
+params = np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
+pop_size = int(params[4])
 
 e = korali.Experiment()
 

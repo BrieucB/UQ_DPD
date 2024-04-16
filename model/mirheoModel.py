@@ -72,7 +72,6 @@ def run_Poiseuille(*,
     rc = p['simu']['rc']
     L = p['simu']['L']
     Fx = p['simu']['Fx']
-    tmax = p['simu']['tmax']
 
     # Collect DPD parameters
     a=p['dpd']['a']
@@ -169,11 +168,11 @@ def run_Poiseuille(*,
             u.deregisterPlugins(veloField)
 
             new_visco = get_visco(f_velo+'%05d.h5'%n_restart, L, Fx)
-            print('new_visco', new_visco)
+            #print('new_visco', new_visco)
            
     # System is in stationary state, now we can sample the velocity profile
     n_restart += 1
-    t_sampling = 100
+    t_sampling = 10
     nsteps_sampling = int(t_sampling/dt)
     sample_every = 2 
     dump_every   = nsteps_sampling -1 

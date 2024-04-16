@@ -5,7 +5,7 @@ from mirheoModel import *
 import korali
 import sys
 
-def F(s,T):
+def F(s,X):
   import h5py
   from mpi4py import MPI
   from scipy.optimize import curve_fit
@@ -35,31 +35,29 @@ def F(s,T):
      
   # Parameters of the simulation
   if standalone:
-    params=np.loadtxt('../metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, tmax, pop_size
+    params=np.loadtxt('../metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
     L = int(params[0]) # Size of the simulation box in the x-direction
     h = L
     Fx = params[1] # Force applied in the x-direction to create the Poiseuille flow
     rho_s =  params[2] # Density of DPD particles
     kBT_s = params[3] # Energy scale of the DPD particles
-    tmax = params[4] # Maximum simulation time (TODO: 
-    # find a criteria to stop the simulation when stationary flow is reached)
+    #print(X)
 
   else:
-    params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, tmax, pop_size
+    params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
     L = int(params[0])
     h = L
     Fx = params[1]
     rho_s =  params[2]
     kBT_s = params[3]
-    tmax = params[4]
 
   s["Reference Evaluations"] = []
   s["Standard Deviation"] = []
   s["error_fit"] = []
 
-  for Ti in T: # Loop over the reference points: here only one point
+  for Xi in X: # Loop over the reference points: here only one point
     # Export the simulation parameters
-    simu_param={'m':1.0, 'nd':rho_s, 'rc':1.0, 'L':L, 'Fx':Fx, 'tmax':tmax}
+    simu_param={'m':1.0, 'nd':Xi, 'rc':1.0, 'L':L, 'Fx':Fx}
     dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':power}
     p={'simu':simu_param, 'dpd':dpd_param}
 
@@ -71,7 +69,7 @@ def F(s,T):
     # Run the simulation
     run_Poiseuille(p=p, ranks=(1,1,1), dump=False, comm=comm, out=(folder, name))
     
-    # Collect the result of the simulation: the velocity profile averaged on
+    # Collect the result of the simulation: the velocity profile averaged
     # after the flow has reached a stationary state
     file = glob.glob(folder+name+'prof_*.h5')[0]
     f = h5py.File(file)
@@ -91,7 +89,7 @@ def F(s,T):
 
     # Save the velocity profile if running standalone
     if standalone:
-      out=np.concatenate([[a, gamma, Ti, eta], data])
+      out=np.concatenate([[a, gamma, Xi, eta], data])
       with open("velo_prof.csv", "w") as f:
         np.savetxt(f, out.reshape(1, out.shape[0]))
 
@@ -103,15 +101,41 @@ def F(s,T):
     # the quality of the fit
     s["error_fit"] += [float(np.sqrt(np.diag(pcov))[0])]
 
-def getReferenceData():
-  return [25] # Reference data is the viscosity of water at 25°C
-
 def getReferencePoints():
+  """
+  Returns the density in DPD units
+  """
+
   import numpy as np
-  params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, tmax, pop_size
-  rho_s =  params[2]
+  params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
+  
+  rho_s = params[2]
+  rho_water = 997 # density of water in kg/m^3 at 25°C  
+
+  ul = 35e-9/1.0 # real/simu : 35nm = standard length of a gas vesicle 
+
+  # We choose the standard mass scale to be defined by density of water at 25°C
+  # divided by the standard density for DPD simulation 
+  um = rho_water*ul**3 / rho_s
+  
+  rho_w_ref = 1.0e3*np.array([0.9982, 0.998, 0.9978, 0.9975, 0.9975, 0.997, 0.9968, 0.9965, 0.9962, 0.9959, 0.9956])
+  list_rho_s = rho_w_ref*ul**3 / um
+
+  return list_rho_s[::2] #[25] # Reference data is the viscosity of water at 25°C
+
+def getReferenceData():
+  """
+  Returns the viscosity in DPD units
+  """
+
+  import numpy as np
+  params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
+  rho_s = params[2]
   kBT_s = params[3]
   
+  #rho_w_ref = np.array([0.9982, 0.998, 0.9978, 0.9975, 0.9975, 0.997, 0.9968, 0.9965, 0.9962, 0.9959, 0.9956])
+  visco_ref = np.array([1.0016, 0.9775, 0.9544, 0.9321, 0.9107, 0.89, 0.8701, 0.8509, 0.8324, 0.8145, 0.7972])
+
   rho_water = 997 # kg/m^3 
   kb = 1.3805e-23 # S.I  
   T0 = 25 # °C
@@ -120,13 +144,16 @@ def getReferencePoints():
   um = rho_water*ul**3 / rho_s
   ue = kb*(T0+273.15) / kBT_s
   ut = np.sqrt(um*ul**2/ue)
+  u_eta=um/(ul*ut)
 
   # viscosity is in kg . m^-1 . s^-1
-  u_eta=(um/(ul*ut)) 
+  u_eta=um/(ul*ut)
+
+  # real data is in mPa.s
   u_real=0.001 # from mPa.s to Pa.s
 
   # Turn the real data into simulation units
-  return [0.89*u_real/u_eta] # Reference data is the viscosity (0.89 mPa.s) at 25°C \approx 14.24 in simulation units
+  return list(visco_ref*u_real/u_eta)[::2] #[0.89*u_real/u_eta] # Reference data is the viscosity (0.89 mPa.s) at 25°C \approx 14.24 in simulation units
 
 def main(argv):
   import argparse
@@ -153,15 +180,16 @@ def main(argv):
   s["Parameters"][1]=args.gamma
   s["Parameters"][2]=args.power
 
-  T=[25]
+  X = getReferencePoints()
+  #print(getReferenceData())
 
-  F(s,T)
+  F(s,X)
 
   comm = MPI.COMM_WORLD
   rank = comm.Get_rank()
 
   if rank == 0:
-    print("T:", T, "s[\"Reference Evaluations\"]:", s["Reference Evaluations"], "s[\"error_fit\"]:", 100*s["error_fit"][0]/s["Reference Evaluations"][0], "%")
+    print("rho:", X, "s[\"Reference Evaluations\"]:", s["Reference Evaluations"], "s[\"error_fit\"]:", 100*np.array(s["error_fit"])/np.array(s["Reference Evaluations"]), "%")
     print("s[\"Standard Deviation\"]:", s["Standard Deviation"][0])
 
 if __name__ == '__main__':
