@@ -88,7 +88,7 @@ def run_Poiseuille(*,
         print(p)
         
     # Compute time step following Lucas' thesis
-    dt = timeStep(kBT=kBT, s=2.*power, rho_s=nd, rc=rc, gamma=gamma, m=m, a=a, Fx=Fx)/2.0
+    dt = timeStep(kBT=kBT, s=2.*power, rho_s=nd, rc=rc, gamma=gamma, m=m, a=a, Fx=Fx)
 
     Lx = L 
     Ly = 2*L 
