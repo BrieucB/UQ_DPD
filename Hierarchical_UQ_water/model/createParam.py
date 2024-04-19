@@ -2,9 +2,9 @@
 import sys
 import pickle
 
-def create_param(nd, L, a, gamma, kBT, power, Fx):
-    simu_param={'m':1, 'nd':nd, 'rc':1, 'L':L, 'Fx':Fx, 't_dump_every':0.01}
-    dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT, 'power':power}
+def create_param(nd, L, a, gamma, kBT):
+    simu_param={'m':1, 'nd':nd, 'rc':1, 'L':L}
+    dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT, 'power':0.5}
 
     p={'simu':simu_param, 'dpd':dpd_param}
 
@@ -19,8 +19,6 @@ def main(argv):
     parser.add_argument('--a', type=float, default=False)
     parser.add_argument('--gamma', type=float, default=False)
     parser.add_argument('--kBT', type=float, default=False)
-    parser.add_argument('--power', type=float, default=0.5)
-    parser.add_argument('--Fx', type=float,  default=1)
 
     args = parser.parse_args(argv)
 
@@ -28,9 +26,7 @@ def main(argv):
                  L=args.L, 
                  a=args.a, 
                  gamma=args.gamma, 
-                 kBT=args.kBT, 
-                 power=args.power, 
-                 Fx=args.Fx)
+                 kBT=args.kBT)
 
 
 if __name__ == '__main__':

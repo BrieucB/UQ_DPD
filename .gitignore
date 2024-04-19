@@ -1,3 +1,4 @@
+Hierarchical_UQ_water/model/virialstress/
 model/__pycache__/
 velocities/
 stress/
@@ -306,3 +307,5 @@ model/velo/prof_1900019.xmf
 model/velo/a45.00_gamma150.00_power0.25/velo00000.h5
 model/velo/
 velo/
+Hierarchical_UQ_water/model/__pycache__/mirheoViscosity.cpython-310.pyc
+Hierarchical_UQ_water/model/__pycache__/mirheoCompressibility.cpython-310.pyc

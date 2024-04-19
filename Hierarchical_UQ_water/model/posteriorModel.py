@@ -1,11 +1,65 @@
 #!/usr/bin/env python
 
-#from DPD_water.model.mirheoModel_v1 import *
-from mirheoModel import *
 import korali
 import sys
+sys.path.append('./model')
 
-def F(s,X):
+from mirheoViscosity import *
+from mirheoCompressibility import *
+
+def measure_compressibility(s,X):
+  # read parameters from Korali
+  a = s["Parameters"][0]
+  gamma = s["Parameters"][1]
+  sig = s["Parameters"][2]
+  power = 0.5
+
+  # Read the MPI Comm assigned by Korali and feed it to the Mirheo simulation
+  # If running on stand alone, use standard MPI communicator
+  try:
+    comm = korali.getWorkerMPIComm()
+    standalone = False
+  except TypeError:
+     comm = MPI.COMM_WORLD
+     standalone = True
+     
+  # Parameters of the simulation
+  if standalone:
+    params=np.loadtxt('../metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
+    L = int(params[0]) # Size of the simulation box in the x-direction
+    h = L
+    rho_s =  params[2] # Density of DPD particles
+    kBT_s = params[3] # Energy scale of the DPD particles
+    #print(X)
+
+  else:
+    params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
+    L = int(params[0])
+    h = L
+    rho_s =  params[2]
+    kBT_s = params[3]
+
+  s["Reference Evaluations"] = []
+  s["Standard Deviation"] = []
+
+  # Export the simulation parameters
+  simu_param={'m':1.0, 'nd':rho_s, 'rc':1.0, 'L':L}
+  dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':power}
+  p={'simu':simu_param, 'dpd':dpd_param}
+
+  # Set output file. Mirheo seems to attribute a random number to the output name, making it
+  # difficult to find the output file. Here we specify the output folder to retrieve the file.
+  folder = "virialstress/"
+  name = 'a%.2f_gamma%.2f/'%(a,gamma)
+  compressibility=getCompressibility(p=p, 
+                                    ranks=(1,1,1), 
+                                    comm=comm, 
+                                    out=(folder, name))
+  # Output the result 
+  s["Reference Evaluations"] += [compressibility] 
+  s["Standard Deviation"] += [sig]
+
+def measure_viscosity(s,X):
   import h5py
   from mpi4py import MPI
   from scipy.optimize import curve_fit
@@ -18,8 +72,9 @@ def F(s,X):
   # read parameters from Korali
   a = s["Parameters"][0]
   gamma = s["Parameters"][1]
-  power = s["Parameters"][2]
-  sig = s["Parameters"][3]
+  sig = s["Parameters"][2]
+
+  power = 0.5
 
   # Read the MPI Comm assigned by Korali and feed it to the Mirheo simulation
   # If running on stand alone, use standard MPI communicator
@@ -55,7 +110,7 @@ def F(s,X):
   s["Standard Deviation"] = []
   s["error_fit"] = []
 
-  for Xi in X: # Loop over the reference points: here only one point
+  for Xi in X: # Loop over the reference points
     # Export the simulation parameters
     simu_param={'m':1.0, 'nd':Xi, 'rc':1.0, 'L':L, 'Fx':Fx}
     dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':power}
@@ -165,32 +220,44 @@ def main(argv):
     shutil.rmtree('./velocities')
     shutil.rmtree('./restart')
     shutil.rmtree('./h5')
+    shutil.rmtree('./virialstress')
+    
   except:
      pass
 
   parser = argparse.ArgumentParser()
   parser.add_argument('--a', type=float, default=False)
   parser.add_argument('--gamma', type=float, default=False)
-  parser.add_argument('--power', type=float, default=False)
+  parser.add_argument('--experiment', type=str, default=False)
+
 
   args = parser.parse_args(argv)
 
-  s={"Parameters":[0,0,0,0.5]}
+  s={"Parameters":[0,0,0.5]}
   s["Parameters"][0]=args.a
   s["Parameters"][1]=args.gamma
-  s["Parameters"][2]=args.power
 
-  X = getReferencePoints()
-  #print(getReferenceData())
+  if(args.experiment == 'viscosity'):
+    X = getReferencePoints()
+    measure_viscosity(s,X)
 
-  F(s,X)
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
 
-  comm = MPI.COMM_WORLD
-  rank = comm.Get_rank()
+    if rank == 0:
+      print("rho:", X, "s[\"Reference Evaluations\"]:", s["Reference Evaluations"], "s[\"error_fit\"]:", 100*np.array(s["error_fit"])/np.array(s["Reference Evaluations"]), "%")
+      print("s[\"Standard Deviation\"]:", s["Standard Deviation"][0])
 
-  if rank == 0:
-    print("rho:", X, "s[\"Reference Evaluations\"]:", s["Reference Evaluations"], "s[\"error_fit\"]:", 100*np.array(s["error_fit"])/np.array(s["Reference Evaluations"]), "%")
-    print("s[\"Standard Deviation\"]:", s["Standard Deviation"][0])
+  elif(args.experiment == 'compressibility'):
+    X = np.loadtxt('data_compressibility.dat', skiprows=1)[0]
+    measure_compressibility(s,X)
+
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+
+    if rank == 0:
+      print("rho:", X, "s[\"Reference Evaluations\"]:", s["Reference Evaluations"])
+      print("s[\"Standard Deviation\"]:", s["Standard Deviation"][0])
 
 if __name__ == '__main__':
     main(sys.argv[1:]) 

@@ -17,18 +17,17 @@ def soundCelerity(kBT, s, rho_s, rc, gamma, m, a):
     alpha=0.103
     return(np.sqrt(kBT/m + 2*alpha*rc**4*a*rho_s/m**2))
 
-def timeStep(kBT, s, rho_s, rc, gamma, m, a, Fx):
+def timeStep(kBT, s, rho_s, rc, gamma, m, a):
     h = rho_s**(-1/3) # Particle spacing
     nu = kineticVisco(kBT, s, rho_s, rc, gamma, m) # Kinematic viscosity from Lucas' thesis 
     c_s = soundCelerity(kBT, s, rho_s, rc, gamma, m, a) # Sound speed
 
     dt1 = h**2 /(8*nu) # Viscous diffusion constraint
     dt2 = h/(4*c_s) # Acoustic CFL constraint
-    dt3 = 0.25*np.sqrt(h/Fx) # External force constraint
 
-    return(min(dt1, dt2, dt3)/2.)
+    return(min(dt1, dt2)/2.)
 
-def run_Poiseuille(*,
+def run_Isothermal(*,
                    p: dict,
                    comm: MPI.Comm,
                    out: tuple,
@@ -44,36 +43,34 @@ def run_Poiseuille(*,
     """
 
     # Collect parameters of the simulation 
-    m = p['simu']['m']
-    nd = p['simu']['nd']
-    rc = p['simu']['rc']
-    L = p['simu']['L']
-    Fx = p['simu']['Fx']
-    tmax = p['simu']['tmax']
+    m    = p['simu']['m']
+    nd   = p['simu']['nd']
+    rc   = p['simu']['rc']
+    L    = p['simu']['L']
+    tmax = 200 #p['simu']['tmax']
 
     # Collect DPD parameters
-    a=p['dpd']['a']
-    gamma=p['dpd']['gamma']
-    kBT=p['dpd']['kBT']
-    power=p['dpd']['power']
+    a     = p['dpd']['a']
+    gamma = p['dpd']['gamma']
+    kBT   = p['dpd']['kBT']
+    power = p['dpd']['power']
 
     # Set output path
     folder, name = out[0], out[1]
 
     rank = comm.Get_rank()
-
-    if rank == 0:
-        print(p)
+    # if rank == 0:
+    #     print(p)
         
     # Compute time step following Lucas' thesis
-    dt = timeStep(kBT=kBT, s=2.*power, rho_s=nd, rc=rc, gamma=gamma, m=m, a=a, Fx=Fx) 
+    dt = timeStep(kBT=kBT, s=2.*power, rho_s=nd, rc=rc, gamma=gamma, m=m, a=a) 
 
-    Lx = L 
-    Ly = 2*L 
-    Lz = 2*L
+    Lx = L  
+    Ly = L 
+    Lz = L
     domain = (Lx,Ly,Lz)	# domain
 
-    stslik = 10
+    stslik = 100
     nsteps = int(tmax/dt)
     nevery = int(nsteps/stslik)
     
@@ -85,40 +82,84 @@ def run_Poiseuille(*,
     ic_water = mir.InitialConditions.Uniform(number_density = nd)
     u.registerParticleVector(water, ic_water)      # Register the PV and initialize its particles
 
+    #print(water.getCoordinates())
+
     # Create and register DPD interaction with specific parameters and cutoff radius
     dpd_wat = mir.Interactions.Pairwise('dpd_wat', 
-                                        rc=rc, 
-                                        kind="DPD", 
-                                        a=a, 
-                                        gamma=gamma, 
-                                        kBT=kBT, 
-                                        power=power)
+                                        rc     = rc, 
+                                        kind   = "DPD", 
+                                        a      = a, 
+                                        gamma  = gamma, 
+                                        kBT    = kBT, 
+                                        power  = power,
+                                        stress = True,
+                                        stress_period = dt)
+    
     u.registerInteraction(dpd_wat)
     u.setInteraction(dpd_wat, water, water)
 
-    vv = mir.Integrators.VelocityVerlet_withPeriodicForce('vv', force=Fx, direction='x')
-    # Compute momentum conservation? and compare with eq case.
+    vv = mir.Integrators.VelocityVerlet('vv')
 
     u.registerIntegrator(vv)
     u.setIntegrator(vv, water)
 
-    sample_every = nevery
     dump_every   = nevery 
     bin_size     = (1.0, 1.0, 1.0)
 
-    #print(sample_every, dump_every, folder+name)
+    # Output virial stress
+    virial = mir.Plugins.createVirialPressurePlugin(name='dpd_wat', 
+                                                    pv=water, 
+                                                    regionFunc=lambda u : 1, 
+                                                    h=bin_size, 
+                                                    dump_every=1, 
+                                                    path=folder+name)
+    u.registerPlugins(virial)
 
-    u.registerPlugins(mir.Plugins.createDumpAverage('field', 
-                                                    [water], 
-                                                    sample_every, 
-                                                    dump_every, 
-                                                    bin_size, 
-                                                    ["velocities"], 
-                                                    folder+name))
-    
+    # Monitor the simulation to check the temperature
+    #stats=mir.Plugins.createStats('stats0', every=dump_every)
+    #u.registerPlugins(stats)
 
     u.run(nsteps, dt=dt)
+
+def getPressure(file, N, kBT, Lx, Ly, Lz):
+    pres = np.loadtxt(file, delimiter=',', skiprows=1)
+    return(N*kBT/(Lx*Ly*Lz) + np.mean(pres[-5000:,1])/(Lx*Ly*Lz))
     
+def getCompressibility(p: dict,
+                       comm: MPI.Comm,
+                       out: tuple,
+                       ranks: tuple=(1,1,1)):
+
+    L = p['simu']['L']
+    V = L**3
+    folder, name = out[0], out[1]
+
+    # Derivative is computed using central finite difference at order 1
+    list_L = np.array([0.999*L, 1.001*L])
+    list_V = list_L**3
+    dV = list_V[1]-list_V[0]
+
+    N=int(p['simu']['nd']*L**3)
+
+    # Estimate compressibility
+    P=[]
+    for L in list_L:
+        Lx = Ly = Lz = L
+        p['simu']['nd'] = N/(Lx*Ly*Lz)
+        p['simu']['L'] = L
+        run_Isothermal(p=p,
+                    ranks=ranks,
+                    comm=comm,
+                    out=out,
+                    dump=False)
+        
+        kBT  = p['dpd']['kBT']
+        Pi = getPressure(folder+name+'water.csv', N, kBT, Lx, Ly, Lz)
+        P.append(Pi)
+
+    #print(P,V, dV)
+    dP = P[1]-P[0]
+    return(-(1/V)*dV/dP)
 
 def load_parameters(filename: str):
     import pickle
@@ -141,12 +182,10 @@ def main(argv):
     p = load_parameters(args.parameters)
 
     comm = MPI.COMM_WORLD
-
-    run_Poiseuille(p=p,
-                   ranks=args.ranks,
-                   comm=comm,
-                   out=[os.getcwd(),"/h5/"],
-                   dump=args.dump)
+    
+    getCompressibility(p=p,
+                       comm=comm,
+                       out='./compressibility')
 
 
 if __name__ == '__main__':
