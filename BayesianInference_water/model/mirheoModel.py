@@ -134,7 +134,7 @@ def run_Poiseuille(*,
     bin_size     = (1.0, 1.0, 1.0)
 
     if equilibration:
-        f_velo = 'velo/'+name+'prof_'+str(n_restart)
+        f_velo = 'velo/' + name + 'prof_' + str(n_restart)
         veloField = mir.Plugins.createDumpAverage(f'field{n_restart}', 
                                                     [water], 
                                                     2, 
@@ -168,7 +168,7 @@ def run_Poiseuille(*,
             u.deregisterPlugins(veloField)
 
             new_visco = get_visco(f_velo+'%05d.h5'%n_restart, L, Fx, nd)
-            #print('new_visco', new_visco)
+            print('new_visco', new_visco)
            
     # System is in stationary state, now we can sample the velocity profile
     n_restart += 1

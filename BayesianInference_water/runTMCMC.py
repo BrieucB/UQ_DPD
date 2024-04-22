@@ -39,7 +39,7 @@ e["Distributions"][1]["Maximum"] = +140.0
 e["Distributions"][2]["Name"] = "Prior_power"
 e["Distributions"][2]["Type"] = "Univariate/Uniform"
 e["Distributions"][2]["Minimum"] = +0.0
-e["Distributions"][2]["Maximum"] = +1.0
+e["Distributions"][2]["Maximum"] = +0.6
 
 e["Distributions"][3]["Name"] = "Prior_sigma"
 e["Distributions"][3]["Type"] = "Univariate/Uniform"
