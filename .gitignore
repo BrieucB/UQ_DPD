@@ -309,3 +309,9 @@ model/velo/
 velo/
 Hierarchical_UQ_water/model/__pycache__/mirheoViscosity.cpython-310.pyc
 Hierarchical_UQ_water/model/__pycache__/mirheoCompressibility.cpython-310.pyc
+BayesianInference_water/model/Fx_dep/runBatchJolly.sh
+BayesianInference_water/model/Fx_dep/
+BayesianInference_water/model/__pycache__/
+BayesianInference_water/model/runBatchJolly.sh
+BayesianInference_water/model/velo_prof.csv
+BayesianInference_water/model/metaparam.dat

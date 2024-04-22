@@ -12,9 +12,6 @@ def F(s,X):
   import numpy as np
   import glob
 
-  def quadratic_func(y, eta):
-    return ((Fx*h)/(2.*eta))*y*(1.-y/h)
-
   # read parameters from Korali
   a = s["Parameters"][0]
   gamma = s["Parameters"][1]
@@ -36,6 +33,8 @@ def F(s,X):
   # Parameters of the simulation
   if standalone:
     params=np.loadtxt('../metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
+    #params=np.loadtxt('/home/rio/Workspace/uq_force_field/UQ_DPD/BayesianInference_water/model/metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
+
     L = int(params[0]) # Size of the simulation box in the x-direction
     h = L
     Fx = params[1] # Force applied in the x-direction to create the Poiseuille flow
@@ -55,7 +54,12 @@ def F(s,X):
   s["Standard Deviation"] = []
   s["error_fit"] = []
 
-  for Xi in X: # Loop over the reference points: here only one point
+  n_ref=0
+  for Xi in X: # Loop over the reference points: here on density
+    
+    def quadratic_func(y, eta):
+      return ((Xi*Fx*h)/(2.*eta))*y*(1.-y/h)
+  
     # Export the simulation parameters
     simu_param={'m':1.0, 'nd':Xi, 'rc':1.0, 'L':L, 'Fx':Fx}
     dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':power}
@@ -64,7 +68,8 @@ def F(s,X):
     # Set output file. Mirheo seems to attribute a random number to the output name, making it
     # difficult to find the output file. Here we specify the output folder to retrieve the file.
     folder = "velocities/"
-    name = 'a%.2f_gamma%.2f_power%.2f/'%(a,gamma,power)
+    name = 'a%.2f_gamma%.2f_power%.2f_n%d/'%(a,gamma,power,n_ref)
+    n_ref+=1
 
     # Run the simulation
     run_Poiseuille(p=p, ranks=(1,1,1), dump=False, comm=comm, out=(folder, name))
@@ -108,6 +113,8 @@ def getReferencePoints():
 
   import numpy as np
   params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
+  #params=np.loadtxt('/home/rio/Workspace/uq_force_field/UQ_DPD/BayesianInference_water/model/metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
+
   
   rho_s = params[2]
   rho_water = 997 # density of water in kg/m^3 at 25°C  
@@ -130,6 +137,8 @@ def getReferenceData():
 
   import numpy as np
   params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
+  #params=np.loadtxt('/home/rio/Workspace/uq_force_field/UQ_DPD/BayesianInference_water/model/metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
+
   rho_s = params[2]
   kBT_s = params[3]
   
@@ -154,6 +163,7 @@ def getReferenceData():
 
   # Turn the real data into simulation units
   return list(visco_ref*u_real/u_eta)[::2] #[0.89*u_real/u_eta] # Reference data is the viscosity (0.89 mPa.s) at 25°C \approx 14.24 in simulation units
+  # [16.0215959089812, 15.266584600171383, 14.567559299430089, 13.918121605835205, 13.31507231892567, 12.752013037779367]
 
 def main(argv):
   import argparse
@@ -163,6 +173,7 @@ def main(argv):
 
   try:
     shutil.rmtree('./velocities')
+    shutil.rmtree('./velo')
     shutil.rmtree('./restart')
     shutil.rmtree('./h5')
   except:

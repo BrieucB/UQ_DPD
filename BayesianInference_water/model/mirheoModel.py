@@ -30,7 +30,7 @@ def timeStep(kBT, s, rho_s, rc, gamma, m, a, Fx):
 
     return(min(dt1, dt2, dt3)/2.)
 
-def get_visco(file, L, Fx):
+def get_visco(file, L, Fx, rho):
     f = h5py.File(file)
     L=int(L)
 
@@ -45,7 +45,7 @@ def get_visco(file, L, Fx):
     x=np.linspace(xmin, xmax, L)
 
     def quadratic_func(y, eta):
-        return ((Fx*L)/(2.*eta))*y*(1.-y/L)
+        return ((rho*Fx*L)/(2.*eta))*y*(1.-y/L)
 
     popt, pcov = curve_fit(quadratic_func, x, data)
     eta=popt[0]
@@ -95,10 +95,10 @@ def run_Poiseuille(*,
     Lz = 2*L
     domain = (Lx,Ly,Lz)	# domain
 
-    runtime = 10
+    runtime = 1
     nsteps_per_runtime = int(runtime/dt)
     
-    output_time = 10
+    output_time = 1
     nsteps_per_output = int(output_time/dt)
 
     # Instantiate Mirheo simulation
@@ -148,9 +148,9 @@ def run_Poiseuille(*,
 
         # Stop simulation if the viscosity stabilizes
         last_visco = 100        
-        new_visco = get_visco(f_velo+'00000.h5', L, Fx)
+        new_visco = get_visco(f_velo+'00000.h5', L, Fx, nd)
 
-        while np.abs(new_visco-last_visco) > 1e-2:
+        while np.abs(new_visco-last_visco) > 1e-3:
             last_visco = new_visco
             n_restart += 1
             
@@ -167,12 +167,12 @@ def run_Poiseuille(*,
             u.run(nsteps_per_runtime, dt=dt)
             u.deregisterPlugins(veloField)
 
-            new_visco = get_visco(f_velo+'%05d.h5'%n_restart, L, Fx)
+            new_visco = get_visco(f_velo+'%05d.h5'%n_restart, L, Fx, nd)
             #print('new_visco', new_visco)
            
     # System is in stationary state, now we can sample the velocity profile
     n_restart += 1
-    t_sampling = 10
+    t_sampling = 50
     nsteps_sampling = int(t_sampling/dt)
     sample_every = 2 
     dump_every   = nsteps_sampling -1 
