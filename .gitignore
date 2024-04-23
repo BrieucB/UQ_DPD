@@ -315,3 +315,4 @@ BayesianInference_water/model/__pycache__/
 BayesianInference_water/model/runBatchJolly.sh
 BayesianInference_water/model/velo_prof.csv
 BayesianInference_water/model/metaparam.dat
+BayesianInference_water/visto_t.dat

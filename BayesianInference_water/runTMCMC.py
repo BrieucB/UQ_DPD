@@ -33,12 +33,12 @@ e["Distributions"][0]["Maximum"] = +2.0
 
 e["Distributions"][1]["Name"] = "Prior_gamma"
 e["Distributions"][1]["Type"] = "Univariate/Uniform"
-e["Distributions"][1]["Minimum"] = +40.0
-e["Distributions"][1]["Maximum"] = +140.0
+e["Distributions"][1]["Minimum"] = +20.0
+e["Distributions"][1]["Maximum"] = +80.0
 
 e["Distributions"][2]["Name"] = "Prior_power"
 e["Distributions"][2]["Type"] = "Univariate/Uniform"
-e["Distributions"][2]["Minimum"] = +0.0
+e["Distributions"][2]["Minimum"] = +0.2
 e["Distributions"][2]["Maximum"] = +0.6
 
 e["Distributions"][3]["Name"] = "Prior_sigma"
@@ -53,11 +53,11 @@ e["Variables"][0]["Initial Value"] = +0.1
 
 e["Variables"][1]["Name"] = "gamma"
 e["Variables"][1]["Prior Distribution"] = "Prior_gamma"
-e["Variables"][1]["Initial Value"] = +100.0
+e["Variables"][1]["Initial Value"] = +50.0
 
 e["Variables"][2]["Name"] = "power"
 e["Variables"][2]["Prior Distribution"] = "Prior_power"
-e["Variables"][2]["Initial Value"] = +0.1
+e["Variables"][2]["Initial Value"] = +0.25
 
 e["Variables"][3]["Name"] = "[Sigma]"
 e["Variables"][3]["Prior Distribution"] = "Prior_sigma"

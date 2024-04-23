@@ -47,7 +47,7 @@ def get_visco(file, L, Fx, rho):
     def quadratic_func(y, eta):
         return ((rho*Fx*L)/(2.*eta))*y*(1.-y/L)
 
-    popt, pcov = curve_fit(quadratic_func, x, data)
+    popt, _ = curve_fit(quadratic_func, x, data)
     eta=popt[0]
     return eta
 
@@ -147,11 +147,17 @@ def run_Poiseuille(*,
         u.deregisterPlugins(veloField)
 
         # Stop simulation if the viscosity stabilizes
+        win = 100
+        list_visco = [1000 for i in range(win)]
+        indx = 0
         last_visco = 100        
         new_visco = get_visco(f_velo+'00000.h5', L, Fx, nd)
+        list_visco[indx%win] = new_visco
+        indx += 1
 
-        while np.abs(new_visco-last_visco) > 1e-3:
-            last_visco = new_visco
+        #while np.abs(new_visco-last_visco) > 1e-3:
+        while (np.std(list_visco)/np.mean(list_visco) > 1e-2) and (n_restart < 1000):
+            #last_visco = new_visco
             n_restart += 1
             
             f_velo = 'velo/'+name+'prof_'+str(n_restart)
@@ -168,7 +174,10 @@ def run_Poiseuille(*,
             u.deregisterPlugins(veloField)
 
             new_visco = get_visco(f_velo+'%05d.h5'%n_restart, L, Fx, nd)
-            print('new_visco', new_visco)
+            list_visco[indx%win] = new_visco
+            indx += 1
+            #print('new_visco', new_visco)
+            #print('mean_visco =', np.mean(list_visco), 'std/mean =', np.std(list_visco)/np.mean(list_visco), n_restart)
            
     # System is in stationary state, now we can sample the velocity profile
     n_restart += 1
