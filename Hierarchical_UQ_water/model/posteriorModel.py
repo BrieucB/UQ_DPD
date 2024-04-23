@@ -12,7 +12,7 @@ def measure_compressibility(s,X):
   a = s["Parameters"][0]
   gamma = s["Parameters"][1]
   sig = s["Parameters"][2]
-  power = 0.5
+  power = 0.25
 
   # Read the MPI Comm assigned by Korali and feed it to the Mirheo simulation
   # If running on stand alone, use standard MPI communicator
@@ -66,15 +66,12 @@ def measure_viscosity(s,X):
   import numpy as np
   import glob
 
-  def quadratic_func(y, eta):
-    return ((Fx*h)/(2.*eta))*y*(1.-y/h)
-
   # read parameters from Korali
   a = s["Parameters"][0]
   gamma = s["Parameters"][1]
   sig = s["Parameters"][2]
 
-  power = 0.5
+  power = 0.25
 
   # Read the MPI Comm assigned by Korali and feed it to the Mirheo simulation
   # If running on stand alone, use standard MPI communicator
@@ -109,8 +106,12 @@ def measure_viscosity(s,X):
   s["Reference Evaluations"] = []
   s["Standard Deviation"] = []
   s["error_fit"] = []
-
-  for Xi in X: # Loop over the reference points
+  n_ref=0
+  for Xi in X: # Loop over the reference points: here on density
+    
+    def quadratic_func(y, eta):
+      return ((Xi*Fx*h)/(2.*eta))*y*(1.-y/h)
+  
     # Export the simulation parameters
     simu_param={'m':1.0, 'nd':Xi, 'rc':1.0, 'L':L, 'Fx':Fx}
     dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':power}
@@ -119,7 +120,8 @@ def measure_viscosity(s,X):
     # Set output file. Mirheo seems to attribute a random number to the output name, making it
     # difficult to find the output file. Here we specify the output folder to retrieve the file.
     folder = "velocities/"
-    name = 'a%.2f_gamma%.2f_power%.2f/'%(a,gamma,power)
+    name = 'a%.2f_gamma%.2f_power%.2f_n%d/'%(a,gamma,power,n_ref)
+    n_ref+=1
 
     # Run the simulation
     run_Poiseuille(p=p, ranks=(1,1,1), dump=False, comm=comm, out=(folder, name))
@@ -156,7 +158,7 @@ def measure_viscosity(s,X):
     # the quality of the fit
     s["error_fit"] += [float(np.sqrt(np.diag(pcov))[0])]
 
-def getReferencePoints():
+def getReferencePointsComp():
   """
   Returns the density in DPD units
   """
@@ -176,9 +178,58 @@ def getReferencePoints():
   rho_w_ref = 1.0e3*np.array([0.9982, 0.998, 0.9978, 0.9975, 0.9975, 0.997, 0.9968, 0.9965, 0.9962, 0.9959, 0.9956])
   list_rho_s = rho_w_ref*ul**3 / um
 
-  return list_rho_s[::2] #[25] # Reference data is the viscosity of water at 25°C
+  return  [rho_water*ul**3 / um] #[25] # Reference data is the viscosity of water at 25°C
 
-def getReferenceData():
+def getReferenceDataComp():
+  """
+  Returns the compressibility in DPD units
+  """
+
+  import numpy as np
+  params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
+  rho_s = params[2]
+  kBT_s = params[3]
+
+  kappa = np.loadtxt('data_compressibility.dat', skiprows=1)[1] # Compressibility of water at 25°C in m.s^2/kg
+  
+  rho_water = 997 # kg/m^3 
+  kb = 1.3805e-23 # S.I  
+  T0 = 25 # °C
+
+  ul = 35e-9/1.0 # real/simu : 35nm = standard length of a gas vesicle 
+  um = rho_water*ul**3 / rho_s
+  ue = kb*(T0+273.15) / kBT_s
+  ut = np.sqrt(um*ul**2/ue)
+
+  # compressibility is in m.s^2/kg
+  u_kappa = ul*(ut**2)/um
+
+  # Turn the real data into simulation units
+  return [kappa/u_kappa]
+
+def getReferencePointsVisco():
+  """
+  Returns the density in DPD units
+  """
+
+  import numpy as np
+  params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
+  
+  rho_s = params[2]
+  rho_water = 997 # density of water in kg/m^3 at 25°C  
+
+  ul = 35e-9/1.0 # real/simu : 35nm = standard length of a gas vesicle 
+
+  # We choose the standard mass scale to be defined by density of water at 25°C
+  # divided by the standard density for DPD simulation 
+  um = rho_water*ul**3 / rho_s
+  
+  rho_w_ref = 1.0e3*np.array([0.9982, 0.998, 0.9978, 0.9975, 0.9975, 0.997, 0.9968, 0.9965, 0.9962, 0.9959, 0.9956])
+  list_rho_s = rho_w_ref*ul**3 / um
+
+  return [rho_s] # list_rho_s[::2] #[25] # Reference data is the viscosity of water at 25°C
+
+def getReferenceDataVisco():
   """
   Returns the viscosity in DPD units
   """
@@ -208,7 +259,7 @@ def getReferenceData():
   u_real=0.001 # from mPa.s to Pa.s
 
   # Turn the real data into simulation units
-  return list(visco_ref*u_real/u_eta)[::2] #[0.89*u_real/u_eta] # Reference data is the viscosity (0.89 mPa.s) at 25°C \approx 14.24 in simulation units
+  return [0.89*u_real/u_eta] #list(visco_ref*u_real/u_eta)[::2] # # Reference data is the viscosity (0.89 mPa.s) at 25°C \approx 14.24 in simulation units
 
 def main(argv):
   import argparse

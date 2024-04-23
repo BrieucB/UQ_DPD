@@ -59,8 +59,8 @@ def run_Isothermal(*,
     folder, name = out[0], out[1]
 
     rank = comm.Get_rank()
-    # if rank == 0:
-    #     print(p)
+    if rank == 0:
+        print('[Korali] Compressibility computation\n', p)
         
     # Compute time step following Lucas' thesis
     dt = timeStep(kBT=kBT, s=2.*power, rho_s=nd, rc=rc, gamma=gamma, m=m, a=a) 
