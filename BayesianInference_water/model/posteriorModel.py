@@ -128,7 +128,7 @@ def getReferencePoints():
   rho_w_ref = 1.0e3*np.array([0.9982, 0.998, 0.9978, 0.9975, 0.9975, 0.997, 0.9968, 0.9965, 0.9962, 0.9959, 0.9956])
   list_rho_s = rho_w_ref*ul**3 / um
 
-  return list_rho_s[0:1] #[25] # Reference data is the viscosity of water at 25°C
+  return list_rho_s[::2] #[0:1] #[25] # Reference data is the viscosity of water at 25°C
 
 def getReferenceData():
   """
@@ -162,7 +162,7 @@ def getReferenceData():
   u_real=0.001 # from mPa.s to Pa.s
 
   # Turn the real data into simulation units
-  return list(visco_ref*u_real/u_eta)[0:1] #[::2] #[0.89*u_real/u_eta] # Reference data is the viscosity (0.89 mPa.s) at 25°C \approx 14.24 in simulation units
+  return list(visco_ref*u_real/u_eta)[::2] #[0.89*u_real/u_eta] # Reference data is the viscosity (0.89 mPa.s) at 25°C \approx 14.24 in simulation units
   # [16.0215959089812, 15.266584600171383, 14.567559299430089, 13.918121605835205, 13.31507231892567, 12.752013037779367]
 
 def main(argv):

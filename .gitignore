@@ -320,3 +320,6 @@ BayesianInference_water/visto_t.dat
 Hierarchical_UQ_water/model/velo_prof.csv
 Hierarchical_UQ_water/model/__pycache__/
 Hierarchical_UQ_water/_setup/results_phase_1/
+Hierarchical_UQ_water/virialstress/
+Hierarchical_UQ_water/phase1_comp.png
+Hierarchical_UQ_water/phase1_visco.png

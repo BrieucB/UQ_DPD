@@ -6,25 +6,37 @@ import korali
 from mpi4py import MPI # Needed to assign a MPI comm to each simulation
 
 eList = []
+params = np.loadtxt('metaparam.dat', skiprows=1) # max_a max_gamma rho_s kBT_s pop_size
+max_a = params[0]
+max_gamma = params[1]
+pop_size = int(params[4])
+
 ############### Experiment 1: viscosity ###############
 
 e1 = korali.Experiment()
 
-e1["Problem"]["Computational Model"] = lambda sampleData: measure_viscosity(sampleData, getReferencePointsVisco())
+e1["Problem"]["Computational Model"] = lambda sampleData: viscosity_analytic(sampleData, getReferencePointsVisco())
 e1["Problem"]["Type"] = "Bayesian/Reference"
 e1["Problem"]["Likelihood Model"] = "Normal"
 e1["Problem"]["Reference Data"] = getReferenceDataVisco()
 
+#print(getReferencePointsVisco(), getReferenceDataVisco())
+
 # Configuring the problem's random distributions
 e1["Distributions"][0]["Name"] = "Uniform 0"
 e1["Distributions"][0]["Type"] = "Univariate/Uniform"
-e1["Distributions"][0]["Minimum"] = 0.0
-e1["Distributions"][0]["Maximum"] = 2.0
+e1["Distributions"][0]["Minimum"] = 1
+e1["Distributions"][0]["Maximum"] = max_a
 
 e1["Distributions"][1]["Name"] = "Uniform 1"
 e1["Distributions"][1]["Type"] = "Univariate/Uniform"
-e1["Distributions"][1]["Minimum"] = 0.0
-e1["Distributions"][1]["Maximum"] = 80.0
+e1["Distributions"][1]["Minimum"] = 10
+e1["Distributions"][1]["Maximum"] = max_gamma
+
+e1["Distributions"][2]["Name"] = "Uniform_0_2"
+e1["Distributions"][2]["Type"] = "Univariate/Uniform"
+e1["Distributions"][2]["Minimum"] = 0.5
+e1["Distributions"][2]["Maximum"] = 2.0
 
 e1["Variables"][0]["Name"] = "a"
 e1["Variables"][0]["Prior Distribution"] = "Uniform 0"
@@ -32,11 +44,14 @@ e1["Variables"][0]["Prior Distribution"] = "Uniform 0"
 e1["Variables"][1]["Name"] = "gamma"
 e1["Variables"][1]["Prior Distribution"] = "Uniform 1"
 
-e1["Variables"][2]["Name"] = "[Sigma]"
-e1["Variables"][2]["Prior Distribution"] = "Uniform 1"
+e1["Variables"][2]["Name"] = "power"
+e1["Variables"][2]["Prior Distribution"] = "Uniform_0_2"
+
+e1["Variables"][3]["Name"] = "sigma_c"
+e1["Variables"][3]["Prior Distribution"] = "Uniform 1"
 
 e1["Solver"]["Type"] = "Sampler/TMCMC"
-e1["Solver"]["Population Size"] = 1000
+e1["Solver"]["Population Size"] = pop_size
 e1["Solver"]["Target Coefficient Of Variation"] = 0.6
 e1["Solver"]["Covariance Scaling"] = 0.02
 
@@ -44,25 +59,34 @@ e1["File Output"]["Path"] = "_setup/results_phase_1/" + "viscosity"
 e1["Console Output"]["Verbosity"] = "Detailed"
 eList.append(e1)
 
-############### Experiment 2: isothermal compressibility ###############
+############### Experiment 2: isothermal compressibility / speed of sound ###############
 
 e2 = korali.Experiment()
 
-e2["Problem"]["Computational Model"] = lambda sampleData: measure_compressibility(sampleData, getReferencePointsComp())
+#e2["Problem"]["Computational Model"] = lambda sampleData: measure_compressibility(sampleData, getReferencePointsComp())
+e2["Problem"]["Computational Model"] = lambda sampleData: speed_analytic(sampleData, getReferencePointsSpeed())
 e2["Problem"]["Type"] = "Bayesian/Reference"
 e2["Problem"]["Likelihood Model"] = "Normal"
-e2["Problem"]["Reference Data"] = getReferenceDataComp()
+#e2["Problem"]["Reference Data"] = getReferenceDataComp()
+e2["Problem"]["Reference Data"] = getReferenceDataSpeed()
+
+print(getReferencePointsSpeed(), getReferenceDataSpeed())
 
 # Configuring the problem's random distributions
 e2["Distributions"][0]["Name"] = "Uniform 0"
 e2["Distributions"][0]["Type"] = "Univariate/Uniform"
-e2["Distributions"][0]["Minimum"] = 0.0
-e2["Distributions"][0]["Maximum"] = 2.0
+e2["Distributions"][0]["Minimum"] = 1.0
+e2["Distributions"][0]["Maximum"] = max_a
 
 e2["Distributions"][1]["Name"] = "Uniform 1"
 e2["Distributions"][1]["Type"] = "Univariate/Uniform"
-e2["Distributions"][1]["Minimum"] = 0.0
-e2["Distributions"][1]["Maximum"] = 80.0
+e2["Distributions"][1]["Minimum"] = 10
+e2["Distributions"][1]["Maximum"] = max_gamma
+
+e2["Distributions"][2]["Name"] = "Uniform_0_2"
+e2["Distributions"][2]["Type"] = "Univariate/Uniform"
+e2["Distributions"][2]["Minimum"] = 0.5
+e2["Distributions"][2]["Maximum"] = 2.0
 
 e2["Variables"][0]["Name"] = "a"
 e2["Variables"][0]["Prior Distribution"] = "Uniform 0"
@@ -70,11 +94,14 @@ e2["Variables"][0]["Prior Distribution"] = "Uniform 0"
 e2["Variables"][1]["Name"] = "gamma"
 e2["Variables"][1]["Prior Distribution"] = "Uniform 1"
 
-e2["Variables"][1]["Name"] = "[Sigma]"
-e2["Variables"][1]["Prior Distribution"] = "Uniform 1"
+e2["Variables"][2]["Name"] = "power"
+e2["Variables"][2]["Prior Distribution"] = "Uniform_0_2"
+
+e2["Variables"][3]["Name"] = "sigma_eta"
+e2["Variables"][3]["Prior Distribution"] = "Uniform 1"
 
 e2["Solver"]["Type"] = "Sampler/TMCMC"
-e2["Solver"]["Population Size"] = 1000
+e2["Solver"]["Population Size"] = pop_size
 e2["Solver"]["Target Coefficient Of Variation"] = 0.6
 e2["Solver"]["Covariance Scaling"] = 0.02
 
@@ -87,10 +114,10 @@ k = korali.Engine()
 
 k.setMPIComm(MPI.COMM_WORLD)
 k["Conduit"]["Type"] = "Distributed"
-k["Conduit"]["Ranks Per Worker"] = 2
+k["Conduit"]["Ranks Per Worker"] = 1
 
 #Profiling
-k["Profiling"]["Detail"] = "Full"
-k["Profiling"]["Frequency"] = 0.5
+# k["Profiling"]["Detail"] = "Full"
+# k["Profiling"]["Frequency"] = 0.5
 
 k.run(eList)
