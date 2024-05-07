@@ -323,3 +323,11 @@ Hierarchical_UQ_water/_setup/results_phase_1/
 Hierarchical_UQ_water/virialstress/
 Hierarchical_UQ_water/phase1_comp.png
 Hierarchical_UQ_water/phase1_visco.png
+BayesianInference_water/_korali_result_propagation/
+BayesianInference_water/_korali_result_tmcmc_multiple_datapoints/
+UncertaintyProp_water/credible_intervals.png
+UncertaintyProp_water/sampling.png
+UncertaintyProp_water/inspect.ipynb
+UncertaintyProp_water/_korali_result_propagation/
+UncertaintyProp_water/_setup/_korali_result_samples/
+UncertaintyProp_water/model/__pycache__/
