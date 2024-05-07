@@ -11,6 +11,16 @@ import numpy as np
 params = np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
 pop_size = int(params[4])
 
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+if rank == 0:
+      with open("korali.log", "a") as f:
+        f.write(f"[Korali setup] Number of ranks: {comm.Get_size()}\n")
+        f.write(f"[Korali setup] Parameters: {params}\n")
+        f.write(f"[Korali setup] Running the inference for:\n")
+        f.write(f"[Korali setup] X-reference: {getReferencePoints()}\n")
+        f.write(f"[Korali setup] Y-reference: {getReferenceData()}\n")
+
 e = korali.Experiment()
 
 # Setting up the reference likelihood for the Bayesian Problem

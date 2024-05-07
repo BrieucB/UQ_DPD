@@ -26,7 +26,8 @@ def F(s,X):
   except TypeError:
      comm = MPI.COMM_WORLD
      standalone = True
-  # rank = comm.Get_rank()
+
+  rank = comm.Get_rank()
   # size = comm.Get_size()
   # print(f"MPI Rank: {rank}/{size}")
      
@@ -71,16 +72,31 @@ def F(s,X):
     name = 'a%.2f_gamma%.2f_power%.2f_n%d/'%(a,gamma,power,n_ref)
     n_ref+=1
 
+    # Log the run
+    if rank == 0:
+      with open("korali.log", "a") as f:
+        f.write(f"[Mirheo run] a={a}, gamma={gamma}, power={power}, sig={sig}, rho_s = {Xi}\n")
+
     # Run the simulation
     run_Poiseuille(p=p, ranks=(1,1,1), dump=False, comm=comm, out=(folder, name))
     
+    # Log the file opening
+    if rank == 0:
+      with open("korali.log", "a") as f:
+        f.write(f"[Opening] {folder+name+'prof_*.h5'}\n")
+
     # Collect the result of the simulation: the velocity profile averaged
     # after the flow has reached a stationary state
     file = glob.glob(folder+name+'prof_*.h5')[0]
-    f = h5py.File(file)
+    f_in = h5py.File(file)
+
+    # Log the viscosity computation
+    if rank == 0:
+      with open("korali.log", "a") as f:
+        f.write(f"[Viscosity computation] {file}\n")
 
     # Compute the viscosity by fitting the velocity profile to a parabola
-    M=np.mean(f['velocities'][:,:,:,0], axis=(0,2))
+    M=np.mean(f_in['velocities'][:,:,:,0], axis=(0,2))
     data_neg=M[:L]
     data_pos=M[L:]
     data=0.5*(-data_neg+data_pos) # average the two half profiles 
@@ -91,6 +107,11 @@ def F(s,X):
 
     popt, pcov = curve_fit(quadratic_func, x, data)
     eta=popt[0]
+
+    # Log the resulting viscosity
+    if rank == 0:
+      with open("korali.log", "a") as f:
+        f.write(f"[Viscosity] {eta} [{float(np.sqrt(np.diag(pcov))[0])}]\n\n")
 
     # Save the velocity profile if running standalone
     if standalone:

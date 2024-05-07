@@ -331,3 +331,4 @@ UncertaintyProp_water/inspect.ipynb
 UncertaintyProp_water/_korali_result_propagation/
 UncertaintyProp_water/_setup/_korali_result_samples/
 UncertaintyProp_water/model/__pycache__/
+BayesianInference_water/korali.log

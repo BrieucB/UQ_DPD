@@ -177,6 +177,9 @@ def run_Poiseuille(*,
             list_visco[indx%win] = new_visco
             indx += 1
             #print('new_visco', new_visco)
+            if rank == 0:
+                with open("korali.log", "a") as f:
+                    f.write(f'[Mirheo run] mean_visco = {np.mean(list_visco)}, std/mean = {np.std(list_visco)/np.mean(list_visco)}, {n_restart}\n')
             #print('mean_visco =', np.mean(list_visco), 'std/mean =', np.std(list_visco)/np.mean(list_visco), n_restart)
            
     # System is in stationary state, now we can sample the velocity profile
