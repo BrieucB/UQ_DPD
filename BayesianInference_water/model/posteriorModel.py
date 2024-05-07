@@ -11,6 +11,7 @@ def F(s,X):
   from scipy.optimize import curve_fit
   import numpy as np
   import glob
+  import shutil
 
   # read parameters from Korali
   a = s["Parameters"][0]
@@ -126,6 +127,12 @@ def F(s,X):
     # Compute the error and store it: can be accessed after inference to check
     # the quality of the fit
     s["error_fit"] += [float(np.sqrt(np.diag(pcov))[0])]
+
+    # Clean up the simulation files
+    if rank == 0:
+      shutil.rmtree('velo/' + name)
+      shutil.rmtree('restart/' + name)
+      
 
 def getReferencePoints():
   """
