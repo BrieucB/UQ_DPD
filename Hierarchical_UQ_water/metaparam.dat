@@ -1,2 +1,2 @@
 #max_a max_gamma rho_s kBT_s pop_size
-10 200 3.0 0.01 5000
+2.0 120.0 3.0 0.01 5000

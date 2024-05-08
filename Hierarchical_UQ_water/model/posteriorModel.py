@@ -172,7 +172,7 @@ def kineticVisco(kBT, s, rho_s, rc, gamma, m):
     """
     A=(3*kBT*(s+1)*(s+2)*(s+3))/(16*np.pi*rho_s*(rc**3)*gamma)
     B=(16*np.pi*rho_s*(rc**3)*gamma)/(5*m*(s+1)*(s+2)*(s+3)*(s+4)*(s+5))
-    return(A+B)
+    return((A+B)/rho_s)
 
 def soundCelerity(kBT, s, rho_s, rc, gamma, m, a):
     alpha=0.103
@@ -182,11 +182,11 @@ def speed_analytic(s,X):
   # read parameters from Korali
   a = s["Parameters"][0]
   gamma = s["Parameters"][1]
-  power = s["Parameters"][2]
-  sig = s["Parameters"][3]
+  #power = s["Parameters"][2]
+  sig = s["Parameters"][2]
   
-  #power = 0.25
-  rc = 1
+  power = 0.38
+  rc = 2.0
   m = 1
   T25 = 25
 
@@ -200,18 +200,18 @@ def speed_analytic(s,X):
   for Ti in X:
     c = soundCelerity(kBT_s*(Ti+273.15)/(T25+273.15), 2.*power, rho_s, rc, gamma, m, a)
     s["Reference Evaluations"] += [c] 
-    s["Standard Deviation"] += [sig*c]
+    s["Standard Deviation"] += [sig]
 
 def viscosity_analytic(s,X):
   
   # read parameters from Korali
   a = s["Parameters"][0]
   gamma = s["Parameters"][1]
-  power = s["Parameters"][2]
-  sig = s["Parameters"][3]
+  #power = s["Parameters"][2]
+  sig = s["Parameters"][2]
   
-  #power = 0.25
-  rc = 1
+  power = 0.38
+  rc = 2.0
   m = 1
   T25 = 25
 
@@ -225,11 +225,12 @@ def viscosity_analytic(s,X):
   for Ti in X:
     visco = kineticVisco(kBT_s*(Ti+273.15)/(T25+273.15), 2.*power, rho_s, rc, gamma, m)
     s["Reference Evaluations"] += [visco] 
-    s["Standard Deviation"] += [sig*visco]
+    s["Standard Deviation"] += [sig]
 
 ############################################################
 ##################### REFERENCE DATA #######################
 ############################################################
+Np = 3
 
 def getReferencePointsSpeed():
   """
@@ -237,7 +238,7 @@ def getReferencePointsSpeed():
   """
 
   import numpy as np
-  T = np.loadtxt('data_speed.dat', skiprows=1)[1:3,0] # Temperature in °C
+  T = np.loadtxt('data_speed.dat', skiprows=1)[1:Np,0] # Temperature in °C
 
   return  list(T)
 
@@ -251,8 +252,8 @@ def getReferenceDataSpeed():
   rho_s = params[2]
   kBT_s = params[3]
 
-  celerity = np.loadtxt('data_speed.dat', skiprows=1)[1:3,1] 
-  T = np.loadtxt('data_speed.dat', skiprows=1)[1:3,0] # Temperature in °C
+  celerity = np.loadtxt('data_speed.dat', skiprows=1)[1:Np,1] 
+  T = np.loadtxt('data_speed.dat', skiprows=1)[1:Np,0] # Temperature in °C
 
   rho_water = 997 # kg/m^3 
   kb = 1.3805e-23 # S.I  
@@ -321,12 +322,14 @@ def getReferenceDataComp():
   # Turn the real data into simulation units
   return [kappa/u_kappa]
 
+
+
 def getReferencePointsVisco():
   """
   Returns the temperature
   """
 
-  T = np.loadtxt('data_viscosity.dat', skiprows=1)[1:3,0] # Temperature in °C
+  T = np.loadtxt('data_viscosity.dat', skiprows=1)[1:Np,0] # Temperature in °C
 
   return  list(T)
 
@@ -340,7 +343,7 @@ def getReferenceDataVisco():
   rho_s = params[2]
   kBT_s = params[3]
   
-  visco = np.loadtxt('data_viscosity.dat', skiprows=1)[1:3,1]
+  visco = np.loadtxt('data_viscosity.dat', skiprows=1)[1:Np,1]
 
   rho_water = 997 # kg/m^3 
   kb = 1.3805e-23 # S.I  

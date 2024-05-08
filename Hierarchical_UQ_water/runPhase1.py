@@ -20,23 +20,23 @@ e1["Problem"]["Type"] = "Bayesian/Reference"
 e1["Problem"]["Likelihood Model"] = "Normal"
 e1["Problem"]["Reference Data"] = getReferenceDataVisco()
 
-#print(getReferencePointsVisco(), getReferenceDataVisco())
+print('Target viscosity:', getReferencePointsVisco(), getReferenceDataVisco())
 
 # Configuring the problem's random distributions
 e1["Distributions"][0]["Name"] = "Uniform 0"
 e1["Distributions"][0]["Type"] = "Univariate/Uniform"
-e1["Distributions"][0]["Minimum"] = 1
+e1["Distributions"][0]["Minimum"] = 0.0
 e1["Distributions"][0]["Maximum"] = max_a
 
 e1["Distributions"][1]["Name"] = "Uniform 1"
 e1["Distributions"][1]["Type"] = "Univariate/Uniform"
-e1["Distributions"][1]["Minimum"] = 10
+e1["Distributions"][1]["Minimum"] = 90
 e1["Distributions"][1]["Maximum"] = max_gamma
 
-e1["Distributions"][2]["Name"] = "Uniform_0_2"
+e1["Distributions"][2]["Name"] = "Uniform_sig"
 e1["Distributions"][2]["Type"] = "Univariate/Uniform"
-e1["Distributions"][2]["Minimum"] = 0.5
-e1["Distributions"][2]["Maximum"] = 2.0
+e1["Distributions"][2]["Minimum"] = 0.0
+e1["Distributions"][2]["Maximum"] = 50.0
 
 e1["Variables"][0]["Name"] = "a"
 e1["Variables"][0]["Prior Distribution"] = "Uniform 0"
@@ -44,11 +44,11 @@ e1["Variables"][0]["Prior Distribution"] = "Uniform 0"
 e1["Variables"][1]["Name"] = "gamma"
 e1["Variables"][1]["Prior Distribution"] = "Uniform 1"
 
-e1["Variables"][2]["Name"] = "power"
-e1["Variables"][2]["Prior Distribution"] = "Uniform_0_2"
+# e1["Variables"][2]["Name"] = "power"
+# e1["Variables"][2]["Prior Distribution"] = "Uniform_0_2"
 
-e1["Variables"][3]["Name"] = "sigma_c"
-e1["Variables"][3]["Prior Distribution"] = "Uniform 1"
+e1["Variables"][2]["Name"] = "sigma_eta"
+e1["Variables"][2]["Prior Distribution"] = "Uniform_sig"
 
 e1["Solver"]["Type"] = "Sampler/TMCMC"
 e1["Solver"]["Population Size"] = pop_size
@@ -70,23 +70,23 @@ e2["Problem"]["Likelihood Model"] = "Normal"
 #e2["Problem"]["Reference Data"] = getReferenceDataComp()
 e2["Problem"]["Reference Data"] = getReferenceDataSpeed()
 
-print(getReferencePointsSpeed(), getReferenceDataSpeed())
+print('Target speed:', getReferencePointsSpeed(), getReferenceDataSpeed())
 
 # Configuring the problem's random distributions
 e2["Distributions"][0]["Name"] = "Uniform 0"
 e2["Distributions"][0]["Type"] = "Univariate/Uniform"
-e2["Distributions"][0]["Minimum"] = 1.0
+e2["Distributions"][0]["Minimum"] = 0.1
 e2["Distributions"][0]["Maximum"] = max_a
 
 e2["Distributions"][1]["Name"] = "Uniform 1"
 e2["Distributions"][1]["Type"] = "Univariate/Uniform"
-e2["Distributions"][1]["Minimum"] = 10
+e2["Distributions"][1]["Minimum"] = 90
 e2["Distributions"][1]["Maximum"] = max_gamma
 
-e2["Distributions"][2]["Name"] = "Uniform_0_2"
+e2["Distributions"][2]["Name"] = "Uniform_sig"
 e2["Distributions"][2]["Type"] = "Univariate/Uniform"
-e2["Distributions"][2]["Minimum"] = 0.5
-e2["Distributions"][2]["Maximum"] = 2.0
+e2["Distributions"][2]["Minimum"] = 0.1
+e2["Distributions"][2]["Maximum"] = 50.0
 
 e2["Variables"][0]["Name"] = "a"
 e2["Variables"][0]["Prior Distribution"] = "Uniform 0"
@@ -94,11 +94,11 @@ e2["Variables"][0]["Prior Distribution"] = "Uniform 0"
 e2["Variables"][1]["Name"] = "gamma"
 e2["Variables"][1]["Prior Distribution"] = "Uniform 1"
 
-e2["Variables"][2]["Name"] = "power"
-e2["Variables"][2]["Prior Distribution"] = "Uniform_0_2"
+# e2["Variables"][2]["Name"] = "power"
+# e2["Variables"][2]["Prior Distribution"] = "Uniform_0_2"
 
-e2["Variables"][3]["Name"] = "sigma_eta"
-e2["Variables"][3]["Prior Distribution"] = "Uniform 1"
+e2["Variables"][2]["Name"] = "sigma_c"
+e2["Variables"][2]["Prior Distribution"] = "Uniform_sig"
 
 e2["Solver"]["Type"] = "Sampler/TMCMC"
 e2["Solver"]["Population Size"] = pop_size
