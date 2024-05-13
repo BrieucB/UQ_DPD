@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 
-#from DPD_water.model.mirheoModel_v1 import *
 from mirheoModel import *
 import korali
 import sys
+import numpy as np
+
+from units import *
 
 def F(s,X):
   import h5py
   from mpi4py import MPI
   from scipy.optimize import curve_fit
-  import numpy as np
   import glob
   import shutil
 
@@ -29,28 +30,13 @@ def F(s,X):
      standalone = True
 
   rank = comm.Get_rank()
-  # size = comm.Get_size()
-  # print(f"MPI Rank: {rank}/{size}")
-     
-  # Parameters of the simulation
-  if standalone:
-    params=np.loadtxt('../metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
-    #params=np.loadtxt('/home/rio/Workspace/uq_force_field/UQ_DPD/BayesianInference_water/model/metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
 
-    L = int(params[0]) # Size of the simulation box in the x-direction
-    h = L
-    Fx = params[1] # Force applied in the x-direction to create the Poiseuille flow
-    rho_s =  params[2] # Density of DPD particles
-    kBT_s = params[3] # Energy scale of the DPD particles
-    #print(X)
-
-  else:
-    params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
-    L = int(params[0])
-    h = L
-    Fx = params[1]
-    rho_s =  params[2]
-    kBT_s = params[3]
+  L = constants['L'] # Size of the simulation box in the x-direction
+  h = L
+  Fx = constants['Fx'] # Force applied in the x-direction to create the Poiseuille flow
+  kBT_s = constants['kBT_s'] # Energy scale of the DPD particles
+  m = constants['m'] # Mass of a DPD bead
+  rc = constants['rc'] # Cutoff radius
 
   s["Reference Evaluations"] = []
   s["Standard Deviation"] = []
@@ -63,7 +49,7 @@ def F(s,X):
       return ((Xi*Fx*h)/(2.*eta))*y*(1.-y/h)
   
     # Export the simulation parameters
-    simu_param={'m':1.0, 'nd':Xi, 'rc':1.0, 'L':L, 'Fx':Fx}
+    simu_param={'m':m, 'nd':Xi, 'rc':rc, 'L':L, 'Fx':Fx}
     dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':power}
     p={'simu':simu_param, 'dpd':dpd_param}
 
@@ -75,7 +61,7 @@ def F(s,X):
 
     # Log the run
     if rank == 0:
-      with open("korali.log", "a") as f:
+      with open("logs/korali.log", "a") as f:
         f.write(f"[Mirheo run] a={a}, gamma={gamma}, power={power}, sig={sig}, rho_s = {Xi}\n")
 
     # Run the simulation
@@ -83,7 +69,7 @@ def F(s,X):
     
     # Log the file opening
     if rank == 0:
-      with open("korali.log", "a") as f:
+      with open("logs/korali.log", "a") as f:
         f.write(f"[Opening] {folder+name+'prof_*.h5'}\n")
 
     # Collect the result of the simulation: the velocity profile averaged
@@ -93,25 +79,26 @@ def F(s,X):
 
     # Log the viscosity computation
     if rank == 0:
-      with open("korali.log", "a") as f:
+      with open("logs/korali.log", "a") as f:
         f.write(f"[Viscosity computation] {file}\n")
 
     # Compute the viscosity by fitting the velocity profile to a parabola
     M=np.mean(f_in['velocities'][:,:,:,0], axis=(0,2))
-    data_neg=M[:L]
-    data_pos=M[L:]
+    iL = int(M.shape[0]/2)
+    data_neg=M[:iL]
+    data_pos=M[iL:]
     data=0.5*(-data_neg+data_pos) # average the two half profiles 
 
     xmin=0.5
-    xmax=L-0.5
-    x=np.linspace(xmin, xmax, L)
+    xmax=iL-0.5
+    x=np.linspace(xmin, xmax, iL)
 
     popt, pcov = curve_fit(quadratic_func, x, data)
     eta=popt[0]
 
     # Log the resulting viscosity
     if rank == 0:
-      with open("korali.log", "a") as f:
+      with open("logs/korali.log", "a") as f:
         f.write(f"[Viscosity] {eta} [{float(np.sqrt(np.diag(pcov))[0])}]\n\n")
 
     # Save the velocity profile if running standalone
@@ -138,64 +125,18 @@ def getReferencePoints():
   """
   Returns the density in DPD units
   """
-
-  import numpy as np
-  params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
-  #params=np.loadtxt('/home/rio/Workspace/uq_force_field/UQ_DPD/BayesianInference_water/model/metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
-
-  
-  rho_s = params[2]
-  rho_water = 997 # density of water in kg/m^3 at 25°C  
-
-  ul = 35e-9/1.0 # real/simu : 35nm = standard length of a gas vesicle 
-
-  # We choose the standard mass scale to be defined by density of water at 25°C
-  # divided by the standard density for DPD simulation 
-  um = rho_water*ul**3 / rho_s
-  
-  rho_w_ref = 1.0e3*np.array([0.9982, 0.998, 0.9978, 0.9975, 0.9975, 0.997, 0.9968, 0.9965, 0.9962, 0.9959, 0.9956])
-  list_rho_s = rho_w_ref*ul**3 / um
-
-  return list_rho_s[::2] #[0:1] #[25] # Reference data is the viscosity of water at 25°C
+  list_rho_s=np.loadtxt('data/data_density_viscosity_DPD.dat', skiprows=1)[:,0]
+  return list(list_rho_s)[6:7] #[::2]
 
 def getReferenceData():
   """
   Returns the viscosity in DPD units
   """
-
-  import numpy as np
-  params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
-  #params=np.loadtxt('/home/rio/Workspace/uq_force_field/UQ_DPD/BayesianInference_water/model/metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
-
-  rho_s = params[2]
-  kBT_s = params[3]
-  
-  #rho_w_ref = np.array([0.9982, 0.998, 0.9978, 0.9975, 0.9975, 0.997, 0.9968, 0.9965, 0.9962, 0.9959, 0.9956])
-  visco_ref = np.array([1.0016, 0.9775, 0.9544, 0.9321, 0.9107, 0.89, 0.8701, 0.8509, 0.8324, 0.8145, 0.7972])
-
-  rho_water = 997 # kg/m^3 
-  kb = 1.3805e-23 # S.I  
-  T0 = 25 # °C
-
-  ul = 35e-9/1.0 # real/simu : 35nm = standard length of a gas vesicle 
-  um = rho_water*ul**3 / rho_s
-  ue = kb*(T0+273.15) / kBT_s
-  ut = np.sqrt(um*ul**2/ue)
-  u_eta=um/(ul*ut)
-
-  # viscosity is in kg . m^-1 . s^-1
-  u_eta=um/(ul*ut)
-
-  # real data is in mPa.s
-  u_real=0.001 # from mPa.s to Pa.s
-
-  # Turn the real data into simulation units
-  return list(visco_ref*u_real/u_eta)[::2] #[0.89*u_real/u_eta] # Reference data is the viscosity (0.89 mPa.s) at 25°C \approx 14.24 in simulation units
-  # [16.0215959089812, 15.266584600171383, 14.567559299430089, 13.918121605835205, 13.31507231892567, 12.752013037779367]
+  list_eta_s=np.loadtxt('data/data_density_viscosity_DPD.dat', skiprows=1)[:,1]
+  return list(list_eta_s)[6:7] #[::2]
 
 def main(argv):
   import argparse
-  import numpy as np
   import shutil
   from mpi4py import MPI
 

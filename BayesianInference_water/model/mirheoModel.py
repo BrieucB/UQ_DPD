@@ -102,8 +102,9 @@ def run_Poiseuille(*,
     nsteps_per_output = int(output_time/dt)
 
     # Instantiate Mirheo simulation
-    u = mir.Mirheo(nranks=ranks, domain=domain, debug_level=0, 
-                   log_filename='log', no_splash=True, comm_ptr=MPI._addressof(comm),
+    u = mir.Mirheo(nranks=ranks, domain=domain, 
+                   debug_level=0, log_filename='logs/log', 
+                   no_splash=True, comm_ptr=MPI._addressof(comm),
                    checkpoint_every=nsteps_per_runtime-1, 
                    checkpoint_folder='restart/'+name,
                    checkpoint_mode='PingPong'
@@ -200,7 +201,8 @@ def run_Poiseuille(*,
 
     u.restart(folder = 'restart/'+name)
     u.run(nsteps_sampling, dt=dt)
-    
+
+    del u
 
 
 def load_parameters(filename: str):
