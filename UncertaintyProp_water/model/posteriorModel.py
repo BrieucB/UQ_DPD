@@ -5,39 +5,76 @@ import sys
 sys.path.append('./model')
 import numpy as np
 
+from units import *
+
 def kineticVisco(kBT, s, rho_s, rc, gamma, m):
     """
     s = power*2
     """
-    A=(3*kBT*(s+1)*(s+2)*(s+3))/(16*np.pi*rho_s*(rc**3)*gamma)
-    B=(16*np.pi*rho_s*(rc**3)*gamma)/(5*m*(s+1)*(s+2)*(s+3)*(s+4)*(s+5))
-    return((A+B)/rho_s)
+    A=(3*kBT*(s+1)*(s+2)*(s+3))/(16*np.pi*(rho_s**2)*(rc**3)*gamma)
+    B=(16*np.pi*(rc**3)*gamma)/(5*m*(s+1)*(s+2)*(s+3)*(s+4)*(s+5))
+    return(A+B)
 
-def viscosity_analytic(s,X):
-  
+def soundCelerity(kBT, s, rho_s, rc, gamma, m, a):
+    alpha=0.103
+    return(np.sqrt(kBT/m + 2*alpha*(rc**4)*a*rho_s/(m**2)))
+
+############################################################
+##################### VELOCITY FCTS ########################
+############################################################
+
+def speed_analytic(s,X):
     # read parameters from Korali
-    # rc = s["Parameters"][0]
-    # gamma = s["Parameters"][1]
-    # power = s["Parameters"][2]
-    # sig = s["Parameters"][3]
-
-    rc = s["Parameters"][0]
-    gamma = 100
+    rc, gamma, sig = s["Parameters"]
     power = 0.12
-    sig = s["Parameters"][1]
 
-    m = 1
-    T25 = 25
-    import numpy as np
-    params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
-    rho_s =  params[2]
-    kBT_s = params[3]
+    kBT_s = constants['kBT_s'] # Energy scale of the DPD particles
+    m = constants['m'] # Mass of a DPD bead
 
     s["Reference Evaluations"] = []
     s["Standard Deviation"] = []
 
-    for Ti in X:
-        visco = kineticVisco(kBT_s*(Ti+273.15)/(T25+273.15), 2.*power, rho_s, rc, gamma, m)
+    for rho_i in X:
+        speed = soundCelerity(kBT_s, 2.*power, rho_i, rc, gamma, m)
+        s["Reference Evaluations"] += [speed] 
+        s["Standard Deviation"] += [sig]
+
+def speed_analytic_prop(s,X):
+    rc, gamma, sig = s["Parameters"]
+    power = 0.12
+    
+    kBT_s = constants['kBT_s'] # Energy scale of the DPD particles
+    m = constants['m'] # Mass of a DPD bead
+
+    s['X'] = X.tolist()
+    s['sigma'] = sig
+    s['Evaluations'] = []
+    for rho_i in X:
+        speed = soundCelerity(kBT_s, 2.*power, rho_i, rc, gamma, m)
+        s['Evaluations'] += [speed]
+
+############################################################
+##################### VISCOSITY FCTS #######################
+############################################################
+
+def viscosity_analytic(s,X):
+    # read parameters from Korali
+
+    # rc, sig = s["Parameters"]
+    # gamma = 100
+    # power = 0.12
+
+    rc, gamma, sig = s["Parameters"]
+    power = 0.12
+
+    kBT_s = constants['kBT_s'] # Energy scale of the DPD particles
+    m = constants['m'] # Mass of a DPD bead
+
+    s["Reference Evaluations"] = []
+    s["Standard Deviation"] = []
+
+    for rho_i in X:
+        visco = kineticVisco(kBT_s, 2.*power, rho_i, rc, gamma, m)
         s["Reference Evaluations"] += [visco] 
         s["Standard Deviation"] += [sig]
 
@@ -47,24 +84,17 @@ def viscosity_analytic_prop(s,X):
     # power = s["Parameters"][2]
     # sig = s["Parameters"][3]
 
-    rc = s['Parameters'][0]
-    gamma = 100
+    rc, gamma, sig = s["Parameters"]
     power = 0.12
     
-    sig = s["Parameters"][1]
-    s['sigma'] = sig
-
-    m = 1
-    T25 = 25
-
-    params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
-    rho_s =  params[2]
-    kBT_s = params[3]
+    kBT_s = constants['kBT_s'] # Energy scale of the DPD particles
+    m = constants['m'] # Mass of a DPD bead
 
     s['X'] = X.tolist()
+    s['sigma'] = sig
     s['Evaluations'] = []
-    for Ti in X:
-        visco = kineticVisco(kBT_s*(Ti+273.15)/(T25+273.15), 2.*power, rho_s, rc, gamma, m)
+    for rho_i in X:
+        visco = kineticVisco(kBT_s, 2.*power, rho_i, rc, gamma, m)
         s['Evaluations'] += [visco]
 
 ############################################################
@@ -72,42 +102,32 @@ def viscosity_analytic_prop(s,X):
 ############################################################
 
 def getReferencePointsVisco():
-    """
-    Returns the temperature
-    """
-    import numpy as np
-    T = np.loadtxt('data_viscosity.dat', skiprows=1)[:,0] #[1:3,0] # Temperature in °C
-
-    return  list(T)
+  """
+  Returns the density in DPD units
+  """
+  list_rho_s=np.loadtxt('data/data_density_viscosity_DPD.dat', skiprows=1)[:,0]
+  return list(list_rho_s)[::2]
 
 def getReferenceDataVisco():
   """
   Returns the viscosity in DPD units
   """
+  list_eta_s=np.loadtxt('data/data_density_viscosity_DPD.dat', skiprows=1)[:,1]
+  return list(list_eta_s)[::2]
 
-  import numpy as np
-  params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
-  rho_s = params[2]
-  kBT_s = params[3]
-  
-  visco = np.loadtxt('data_viscosity.dat', skiprows=1)[:,1]
+def getReferencePointsSpeed():
+  """
+  Returns the density in DPD units
+  """
+  list_rho_s=np.loadtxt('data/data_density_speed_DPD.dat', skiprows=1)[:,0]
+  return list(list_rho_s)[::2]
 
-  rho_water = 997 # kg/m^3 
-  kb = 1.3805e-23 # S.I  
-  T0 = 25 # °C
-
-  ul = 35e-9/1.0 # real/simu : 35nm = standard length of a gas vesicle 
-  um = rho_water*ul**3 / rho_s
-  ue = kb*(T0+273.15) / kBT_s
-  ut = np.sqrt(um*ul**2/ue)
-  u_eta=um/(ul*ut)
-
-  # viscosity is in kg . m^-1 . s^-1
-  u_eta=um/(ul*ut)
-
-  # Turn the real data into simulation units
-  return list(visco/u_eta)
-
+def getReferenceDataSpeed():
+  """
+  Returns the speed in DPD units
+  """
+  list_c_s=np.loadtxt('data/data_density_speed_DPD.dat', skiprows=1)[:,1]
+  return list(list_c_s)[::2]
 
 def main(argv):
   import argparse
@@ -136,29 +156,6 @@ def main(argv):
   s["Parameters"][0]=args.a
   s["Parameters"][1]=args.gamma
 
-  if(args.experiment == 'viscosity'):
-    X = getReferencePointsVisco()
-    measure_viscosity(s,X)
-
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-
-    if rank == 0:
-      print("rho:", X, "s[\"Reference Evaluations\"]:", s["Reference Evaluations"], "s[\"error_fit\"]:", 100*np.array(s["error_fit"])/np.array(s["Reference Evaluations"]), "%")
-      print("s[\"Standard Deviation\"]:", s["Standard Deviation"][0])
-
-  elif(args.experiment == 'compressibility'):
-    X = np.loadtxt('data_compressibility.dat', skiprows=1)[0]
-    
-    measure_compressibility(s,X)
-
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-
-    if rank == 0:
-      print('Reference compressibility:', getReferenceDataComp())
-      print("rho:", X, "s[\"Reference Evaluations\"]:", s["Reference Evaluations"])
-      print("s[\"Standard Deviation\"]:", s["Standard Deviation"][0])
-
+  
 if __name__ == '__main__':
     main(sys.argv[1:]) 

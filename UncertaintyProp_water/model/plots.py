@@ -60,5 +60,6 @@ def plot_credible_intervals( file, data):
     ax.legend(loc='upper left')
     ax.grid()
     ax.set_xlim(left=x[1])
+    ax.set_ylim(bottom=0)
 
     plt.savefig('credible_intervals.png')

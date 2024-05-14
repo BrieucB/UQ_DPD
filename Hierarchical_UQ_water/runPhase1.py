@@ -2,14 +2,27 @@
 import sys
 sys.path.append('./model')
 from posteriorModel import *
+from model.units import *
+
 import korali
 from mpi4py import MPI # Needed to assign a MPI comm to each simulation
 
 eList = []
-params = np.loadtxt('metaparam.dat', skiprows=1) # max_a max_gamma rho_s kBT_s pop_size
+params = np.loadtxt('metaparam.dat', skiprows=1) # max_a max_gamma pop_size
 max_a = params[0]
 max_gamma = params[1]
-pop_size = int(params[4])
+pop_size = int(params[2])
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+
+# Reference data setup
+if (rank == 0):
+    convertToDPDUnitsDensityVisco('data/data_density_viscosity.dat', units)
+    convertToDPDUnitsDensitySpeed('data/data_density_speed.dat', units)
+    print('Target speed:', getReferencePointsSpeed(), getReferenceDataSpeed())
+    print('Target viscosity:', getReferencePointsVisco(), getReferenceDataVisco())
+comm.Barrier()
 
 ############### Experiment 1: viscosity ###############
 
@@ -19,8 +32,6 @@ e1["Problem"]["Computational Model"] = lambda sampleData: viscosity_analytic(sam
 e1["Problem"]["Type"] = "Bayesian/Reference"
 e1["Problem"]["Likelihood Model"] = "Normal"
 e1["Problem"]["Reference Data"] = getReferenceDataVisco()
-
-print('Target viscosity:', getReferencePointsVisco(), getReferenceDataVisco())
 
 # Configuring the problem's random distributions
 e1["Distributions"][0]["Name"] = "Uniform 0"
@@ -69,8 +80,6 @@ e2["Problem"]["Type"] = "Bayesian/Reference"
 e2["Problem"]["Likelihood Model"] = "Normal"
 #e2["Problem"]["Reference Data"] = getReferenceDataComp()
 e2["Problem"]["Reference Data"] = getReferenceDataSpeed()
-
-print('Target speed:', getReferencePointsSpeed(), getReferenceDataSpeed())
 
 # Configuring the problem's random distributions
 e2["Distributions"][0]["Name"] = "Uniform 0"
