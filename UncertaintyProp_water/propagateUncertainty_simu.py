@@ -26,10 +26,10 @@ e['Problem']['Type'] = 'Propagation'
 e["Problem"]['Execution Model'] = lambda sampleData: viscosity_simu_prop(sampleData, x)
 
 # load the data from the sampling
-with open('_setup/_korali_result_samples/latest') as f:
+with open('_setup/_korali_result_samples_simu/latest') as f:
     d = json.load(f)
 
-e['Variables'][0]['Name'] = 'rc'
+e['Variables'][0]['Name'] = 'a'
 v = [p[0] for p in d['Results']['Posterior Sample Database']]
 e['Variables'][0]['Precomputed Values'] = v
 
@@ -37,13 +37,13 @@ e['Variables'][1]['Name'] = 'gamma'
 v = [p[1] for p in d['Results']['Posterior Sample Database']]
 e['Variables'][1]['Precomputed Values'] = v
 
-# e['Variables'][2]['Name'] = 'power'
-# v = [p[2] for p in d['Results']['Posterior Sample Database']]
-# e['Variables'][2]['Precomputed Values'] = v
-
-e['Variables'][2]['Name'] = '[Sigma]'
+e['Variables'][2]['Name'] = 'power'
 v = [p[2] for p in d['Results']['Posterior Sample Database']]
 e['Variables'][2]['Precomputed Values'] = v
+
+e['Variables'][3]['Name'] = '[Sigma]'
+v = [p[3] for p in d['Results']['Posterior Sample Database']]
+e['Variables'][3]['Precomputed Values'] = v
 
 e['Solver']['Type'] = 'Executor'
 e['Solver']['Executions Per Generation'] = 100

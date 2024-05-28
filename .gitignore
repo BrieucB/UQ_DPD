@@ -56,3 +56,4 @@ UncertaintyProp_water/_setup/_korali_result_samples/
 UncertaintyProp_water/model/__pycache__/
 BayesianInference_water/korali.log
 UncertaintyProp_water/_setup/_korali_result_propagation/
+UncertaintyProp_water/korali.log

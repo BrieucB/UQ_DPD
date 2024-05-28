@@ -300,7 +300,7 @@ def main(argv):
     rank = comm.Get_rank()
 
     if rank == 0:
-      print('Reference compressibility:', getReferenceDataComp())
+      #print('Reference compressibility:', getReferenceDataComp())
       print("rho:", X, "s[\"Reference Evaluations\"]:", s["Reference Evaluations"])
       print("s[\"Standard Deviation\"]:", s["Standard Deviation"][0])
 
