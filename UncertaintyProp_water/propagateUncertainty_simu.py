@@ -5,7 +5,7 @@ import json
 import sys
 sys.path.append('./model')
 
-from model.plots import plot_credible_intervals
+#from model.plots import plot_credible_intervals
 import korali
 from model.posteriorModel import *
 from mpi4py import MPI
@@ -59,5 +59,4 @@ k["Conduit"]["Type"] = "Distributed"
 k["Conduit"]["Ranks Per Worker"] = 2
 k.run(e)
 
-plot_credible_intervals('_setup/_korali_result_propagation/latest', data)
-print(data)
+#plot_credible_intervals('_setup/_korali_result_propagation/latest', data)
