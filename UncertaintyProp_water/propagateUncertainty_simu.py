@@ -10,6 +10,9 @@ import korali
 from model.posteriorModel import *
 from mpi4py import MPI
 import numpy as np
+import os
+
+os.makedirs('logs', exist_ok=True)
 
 data = {}
 data['X'] = getReferencePointsVisco()
