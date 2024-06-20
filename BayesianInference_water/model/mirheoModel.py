@@ -179,7 +179,7 @@ def run_Poiseuille(*,
             indx += 1
             #print('new_visco', new_visco)
             if rank == 0:
-                with open("korali.log", "a") as f:
+                with open("logs/mirheo", "a") as f:
                     f.write(f'[Mirheo run] mean_visco = {np.mean(list_visco)}, std/mean = {np.std(list_visco)/np.mean(list_visco)}, {n_restart}\n')
             #print('mean_visco =', np.mean(list_visco), 'std/mean =', np.std(list_visco)/np.mean(list_visco), n_restart)
            

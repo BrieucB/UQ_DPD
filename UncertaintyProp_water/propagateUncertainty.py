@@ -13,7 +13,7 @@ import numpy as np
 
 data = {}
 data['X'] = getReferencePointsVisco()
-data['Y'] = getReferenceDataVisco() 
+data['Y'] = getReferenceDataVisco()
 
 # Evaluate the model for all the parameters from the previous step
 e = korali.Experiment()

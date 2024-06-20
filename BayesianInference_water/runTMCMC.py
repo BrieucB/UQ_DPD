@@ -17,6 +17,8 @@ from model.units import *
 convertToDPDUnits('data/data_density_viscosity.dat', units)
 
 comm = MPI.COMM_WORLD
+comm.Barrier()
+
 rank = comm.Get_rank()
 if rank == 0:
       os.makedirs('logs', exist_ok=True)
