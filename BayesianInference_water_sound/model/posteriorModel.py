@@ -35,6 +35,8 @@ def F(s,X):
      standalone = True
 
   rank = comm.Get_rank()
+  if rank == 0:
+    print(comm)
 
   L         = constants['L']       # Size of the simulation box in the x-direction
   kBT_s     = constants['kBT_s']  # Energy scale of the DPD particles
@@ -67,46 +69,10 @@ def F(s,X):
 
     # Run the simulation
     #run_Poiseuille(p=p, ranks=(1,1,1), dump=False, comm=comm, out=(folder, name))
-    run_shear_flow(p=p, ranks=(1,1,1), dump=False, comm=comm, out=(folder, name))
+    speed = compute_speed_of_sound(p=p, ranks=(1,1,1), comm=comm, out=(folder, name))
     
-    # Log the file opening
-    if rank == 0:
-      with open("logs/korali.log", "a") as f:
-        f.write(f"[Opening] {folder+name+'prof_*.h5'}\n")
-
-    # Collect the result of the simulation: the velocity profile averaged
-    # after the flow has reached a stationary state
-    file = glob.glob(folder+name+'prof_*.h5')[0]
-    f_in = h5py.File(file)
-
-    vy = f_in['velocities'][0,0,:,1]
-    iL = int(vy.shape[0])
-
-    # Log the viscosity computation
-    if rank == 0:
-      with open("logs/korali.log", "a") as f:
-        f.write(f"[Viscosity computation] {file}\n")
-
-    # Compute the viscosity by fitting the velocity profile to a parabola
-    xmin = 0.5
-    xmax = iL-0.5
-    x    = np.linspace(xmin, xmax, iL)
-    coeffs, residuals, rank, singular_values, rcond = np.polyfit(x, vy, 1, full=True)
-    eta  = ptan/(coeffs[0])
-    print(f"Viscosity: {eta} [{residuals}]")
-    # Log the resulting viscosity
-    if rank == 0:      
-      with open("logs/korali.log", "a") as f:
-        f.write(f"[Viscosity] {eta} [{residuals}]\n\n")
-
-    # Save the velocity profile if running standalone
-    if standalone:
-      out=np.concatenate([[a, gamma, Xi, eta], data])
-      with open("velo_prof.csv", "w") as f:
-        np.savetxt(f, out.reshape(1, out.shape[0]))
-
     # Output the result 
-    s["Reference Evaluations"] += [eta] # Viscosity in simulation units
+    s["Reference Evaluations"] += [speed] # Viscosity in simulation units
     s["Standard Deviation"]    += [sig] # Viscosity in simulation units
 
     # Compute the error and store it: can be accessed after inference to check
@@ -128,15 +94,15 @@ def getReferencePoints():
   """
   Returns the density in DPD units
   """
-  list_rho_s=np.loadtxt('data/data_density_viscosity_DPD.dat', skiprows=1)[:,0]
-  return list(list_rho_s)[5:6] #[::2]
+  list_rho_s=np.loadtxt('data/data_density_speed_DPD.dat', skiprows=1)[:,0]
+  return list(list_rho_s)[0:1] #[::2]
 
 def getReferenceData():
   """
   Returns the viscosity in DPD units
   """
-  list_eta_s=np.loadtxt('data/data_density_viscosity_DPD.dat', skiprows=1)[:,1]
-  return list(list_eta_s)[5:6] #[::2]
+  list_eta_s=np.loadtxt('data/data_density_speed_DPD.dat', skiprows=1)[:,1]
+  return list(list_eta_s)[0:1] #[::2]
 
 def main(argv):
   import argparse

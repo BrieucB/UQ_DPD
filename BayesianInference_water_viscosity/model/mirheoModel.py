@@ -103,6 +103,8 @@ def run_shear_flow(*,
     output_time = runtime
     nsteps_per_output = int(output_time/dt)
 
+    t_eq = 100
+
     # OBMD parameters
     alpha=0.103
     pext = nd*kBT + alpha*a*nd**2
@@ -122,7 +124,7 @@ def run_shear_flow(*,
                    log_filename      = 'logs/log',
                    no_splash         = True,
                    comm_ptr          = MPI._addressof(comm),
-                   checkpoint_every  = nsteps_per_runtime-1,
+                   checkpoint_every  = int(t_eq/dt) -1, #nsteps_per_runtime-1
                    checkpoint_folder = 'restart/'+name,
                    checkpoint_mode   = 'PingPong', 
                    **obmd
@@ -206,7 +208,6 @@ def run_shear_flow(*,
                     f.write(f'[Mirheo run] mean_visco = {np.mean(list_visco)}, std/mean = {np.std(list_visco)/np.mean(list_visco)}, {n_restart}\n')
             print('mean_visco =', np.mean(list_visco), 'std/mean =', np.std(list_visco)/np.mean(list_visco), n_restart)
     else:
-        t_eq = 100
         u.run(int(t_eq/dt), dt=dt)
 
     # System is in stationary state, now we can sample the velocity profile
