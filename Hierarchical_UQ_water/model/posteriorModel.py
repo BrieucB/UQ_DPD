@@ -10,144 +10,186 @@ from units import *
 ############################################################
 
 from mirheoViscosity import *
-from mirheoCompressibility import *
+from mirheoSpeed import *
 
-def measure_compressibility(s,X):
-  # read parameters from Korali
-  a = s["Parameters"][0]
-  gamma = s["Parameters"][1]
-  sig = s["Parameters"][2]
-  power = 0.25
 
-  # Read the MPI Comm assigned by Korali and feed it to the Mirheo simulation
-  # If running on stand alone, use standard MPI communicator
-  try:
-    comm = korali.getWorkerMPIComm()
-    standalone = False
-  except TypeError:
-     comm = MPI.COMM_WORLD
-     standalone = True
-     
-  # Parameters of the simulation
-  if standalone:
-    params=np.loadtxt('../metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
-    L = int(params[0]) # Size of the simulation box in the x-direction
-    h = L
-    rho_s =  params[2] # Density of DPD particles
-    kBT_s = params[3] # Energy scale of the DPD particles
-    #print(X)
-
-  else:
-    params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
-    L = int(params[0])
-    h = L
-    rho_s =  params[2]
-    kBT_s = params[3]
-
-  s["Reference Evaluations"] = []
-  s["Standard Deviation"] = []
-
-  # Export the simulation parameters
-  simu_param={'m':1.0, 'nd':rho_s, 'rc':1.0, 'L':L}
-  dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':power}
-  p={'simu':simu_param, 'dpd':dpd_param}
-
-  # Set output file. Mirheo seems to attribute a random number to the output name, making it
-  # difficult to find the output file. Here we specify the output folder to retrieve the file.
-  folder = "virialstress/"
-  name = 'a%.2f_gamma%.2f/'%(a,gamma)
-  compressibility=getCompressibility(p=p, 
-                                    ranks=(1,1,1), 
-                                    comm=comm, 
-                                    out=(folder, name))
-  # Output the result 
-  s["Reference Evaluations"] += [compressibility] 
-  s["Standard Deviation"] += [sig]
-
-def measure_viscosity(s,X):
+def computeSpeed(s,X):
   import h5py
   from mpi4py import MPI
   from scipy.optimize import curve_fit
-  import numpy as np
   import glob
+  import shutil
 
   # read parameters from Korali
-  a = s["Parameters"][0]
-  gamma = s["Parameters"][1]
-  sig = s["Parameters"][2]
+  # a     = 0.12
+  # gamma = 75.0 
+  
+  # sig   = s["Parameters"][3]
 
-  power = 0.25
+  a, gamma, sig = s["Parameters"]
+  power = 1.0
 
   # Read the MPI Comm assigned by Korali and feed it to the Mirheo simulation
   # If running on stand alone, use standard MPI communicator
   try:
-    comm = korali.getWorkerMPIComm()
+    comm       = korali.getWorkerMPIComm()
     standalone = False
   except TypeError:
-     comm = MPI.COMM_WORLD
+     comm       = MPI.COMM_WORLD
      standalone = True
-  # rank = comm.Get_rank()
-  # size = comm.Get_size()
-  # print(f"MPI Rank: {rank}/{size}")
-     
-  # Parameters of the simulation
-  if standalone:
-    params=np.loadtxt('../metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
-    L = int(params[0]) # Size of the simulation box in the x-direction
-    h = L
-    Fx = params[1] # Force applied in the x-direction to create the Poiseuille flow
-    rho_s =  params[2] # Density of DPD particles
-    kBT_s = params[3] # Energy scale of the DPD particles
-    #print(X)
 
-  else:
-    params=np.loadtxt('metaparam.dat', skiprows=1) # L, Fx, rho_s, kBT_s, pop_size
-    L = int(params[0])
-    h = L
-    Fx = params[1]
-    rho_s =  params[2]
-    kBT_s = params[3]
+  rank = comm.Get_rank()
+  if rank == 0:
+    print(comm)
+
+  L         = constants['L']       # Size of the simulation box in the x-direction
+  kBT_s     = constants['kBT_s']  # Energy scale of the DPD particles
+  m         = constants['m']      # Mass of a DPD bead
+  rc        = constants['rc']     # Cutoff radius
+  ptan      = obmd['ptan']        # Tangential pressure
 
   s["Reference Evaluations"] = []
-  s["Standard Deviation"] = []
-  s["error_fit"] = []
+  s["Standard Deviation"]    = []
+  #s["error_fit"]             = []
+
   n_ref=0
   for Xi in X: # Loop over the reference points: here on density
     
-    def quadratic_func(y, eta):
-      return ((Xi*Fx*h)/(2.*eta))*y*(1.-y/h)
-  
     # Export the simulation parameters
-    simu_param={'m':1.0, 'nd':Xi, 'rc':1.0, 'L':L, 'Fx':Fx}
-    dpd_param={'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':power}
-    p={'simu':simu_param, 'dpd':dpd_param}
+    simu_param = {'m':m, 'nd':Xi, 'rc':rc, 'L':L, 'ptan':ptan}
+    dpd_param  = {'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':power}
+    p          = {'simu':simu_param, 'dpd':dpd_param, 'obmd':obmd}
 
     # Set output file. Mirheo seems to attribute a random number to the output name, making it
     # difficult to find the output file. Here we specify the output folder to retrieve the file.
-    folder = "velocities/"
-    name = 'a%.2f_gamma%.2f_power%.2f_n%d/'%(a,gamma,power,n_ref)
-    n_ref+=1
+    folder = "velocities_speed/"
+    name   = 'a%.2f_gamma%.2f_power%.2f_n%d/'%(a,gamma,power,n_ref)
+    n_ref += 1
+
+    # Log the run
+    if rank == 0:
+      with open("logs/korali.log", "a") as f:
+        f.write(f"[Mirheo run] a={a}, gamma={gamma}, power={power}, sig={sig}, rho_s = {Xi}\n")
 
     # Run the simulation
-    run_Poiseuille(p=p, ranks=(1,1,1), dump=False, comm=comm, out=(folder, name))
+    #run_Poiseuille(p=p, ranks=(1,1,1), dump=False, comm=comm, out=(folder, name))
+    speed = compute_speed_of_sound(p=p, ranks=(1,1,1), comm=comm, out=(folder, name))
     
+    # Output the result 
+    s["Reference Evaluations"] += [speed] # Viscosity in simulation units
+    s["Standard Deviation"]    += [sig] # Viscosity in simulation units
+
+    # Compute the error and store it: can be accessed after inference to check
+    # the quality of the fit
+    #s["error_fit"] += [float(np.sqrt(np.diag(pcov))[0])]
+
+    # Clean up the simulation files 
+    # -> [TODO] what happens of this on multiple nodes/GPUs ?
+    if rank == 0:
+      try:
+        shutil.rmtree('velo/' + name)
+        shutil.rmtree('restart/' + name)
+      except:
+        #print("Error: could not remove the folder velo/ or restart/")
+        pass
+
+def computeViscosity(s,X):
+  import h5py
+  from mpi4py import MPI
+  from scipy.optimize import curve_fit
+  import glob
+  import shutil
+
+  # read parameters from Korali
+  # a     = 0.12
+  # gamma = 75.0 
+  # power = 0.125 
+  # sig   = s["Parameters"][3]
+
+  a, gamma, sig = s["Parameters"]
+  power = 1.0
+
+  # Read the MPI Comm assigned by Korali and feed it to the Mirheo simulation
+  # If running on stand alone, use standard MPI communicator
+  try:
+    comm       = korali.getWorkerMPIComm()
+    standalone = False
+  except TypeError:
+     comm       = MPI.COMM_WORLD
+     standalone = True
+
+  rank = comm.Get_rank()
+  if rank == 0:
+    print(comm)
+
+  L         = constants['L']       # Size of the simulation box in the x-direction
+  kBT_s     = constants['kBT_s']  # Energy scale of the DPD particles
+  m         = constants['m']      # Mass of a DPD bead
+  rc        = constants['rc']     # Cutoff radius
+  ptan      = obmd['ptan']        # Tangential pressure
+
+  s["Reference Evaluations"] = []
+  s["Standard Deviation"]    = []
+  #s["error_fit"]             = []
+
+  n_ref=0
+  for Xi in X: # Loop over the reference points: here on density
+    
+    # Export the simulation parameters
+    simu_param = {'m':m, 'nd':Xi, 'rc':rc, 'L':L, 'ptan':ptan}
+    dpd_param  = {'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':power}
+    p          = {'simu':simu_param, 'dpd':dpd_param, 'obmd':obmd}
+
+    # Set output file. Mirheo seems to attribute a random number to the output name, making it
+    # difficult to find the output file. Here we specify the output folder to retrieve the file.
+    folder = "velocities_viscosity/"
+    name   = 'a%.2f_gamma%.2f_power%.2f_n%d/'%(a,gamma,power,n_ref)
+    n_ref += 1
+
+    # Log the run
+    if rank == 0:
+      with open("logs/korali.log", "a") as f:
+        f.write(f"[Mirheo run] a={a}, gamma={gamma}, power={power}, sig={sig}, rho_s = {Xi}\n")
+
+    # Run the simulation
+    run_shear_flow(p=p, ranks=(1,1,1), dump=False, comm=comm, out=(folder, name))
+    
+    # Log the file opening
+    if rank == 0:
+      with open("logs/korali.log", "a") as f:
+        f.write(f"[Opening] {folder+name+'prof_*.h5'}\n")
+
     # Collect the result of the simulation: the velocity profile averaged
     # after the flow has reached a stationary state
     file = glob.glob(folder+name+'prof_*.h5')[0]
-    f = h5py.File(file)
+    f_in = h5py.File(file)
+
+    vy = f_in['velocities'][0,0,:,1]
+    iL = int(vy.shape[0])
+
+    bufferSize = int(obmd['bufferSize']*iL)+1
+    inside = vy[bufferSize:-bufferSize]
+    iL = int(inside.shape[0])
+
+    # Log the viscosity computation
+    if rank == 0:
+      with open("logs/korali.log", "a") as f:
+        f.write(f"[Viscosity computation] {file}\n")
 
     # Compute the viscosity by fitting the velocity profile to a parabola
-    M=np.mean(f['velocities'][:,:,:,0], axis=(0,2))
-    data_neg=M[:L]
-    data_pos=M[L:]
-    data=0.5*(-data_neg+data_pos) # average the two half profiles 
+    xmin = 0.5
+    xmax = iL-0.5
+    x    = np.linspace(xmin, xmax, iL)
+    coeffs, cov = np.polyfit(x, inside, 1, cov=True)
+    err = np.sqrt(np.diag(cov))[0]
+    rel_err = err/coeffs[0]
+    eta  = ptan/(coeffs[0])
+    print(f"Viscosity: {eta} [{rel_err}]")
 
-    xmin=0.5
-    xmax=L-0.5
-    x=np.linspace(xmin, xmax, L)
-
-    popt, pcov = curve_fit(quadratic_func, x, data)
-    eta=popt[0]
+    # Log the resulting viscosity
+    if rank == 0:      
+      with open("logs/korali.log", "a") as f:
+        f.write(f"[Viscosity] {eta} [{rel_err}]\n\n")
 
     # Save the velocity profile if running standalone
     if standalone:
@@ -157,11 +199,17 @@ def measure_viscosity(s,X):
 
     # Output the result 
     s["Reference Evaluations"] += [eta] # Viscosity in simulation units
-    s["Standard Deviation"] += [sig] # Viscosity in simulation units
+    s["Standard Deviation"]    += [sig] # Viscosity in simulation units
 
-    # Compute the error and store it: can be accessed after inference to check
-    # the quality of the fit
-    s["error_fit"] += [float(np.sqrt(np.diag(pcov))[0])]
+    # Clean up the simulation files 
+    if rank == 0:
+      try:
+        shutil.rmtree('velo/' + name)
+        shutil.rmtree('restart/' + name)
+      except:
+        #print("Error: could not remove the folder velo/ or restart/")
+        pass
+
 
 ############################################################
 ############## USING ANALYTIC DPD EQUATIONS ################

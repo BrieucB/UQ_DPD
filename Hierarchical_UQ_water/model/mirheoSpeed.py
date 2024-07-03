@@ -32,21 +32,7 @@ def timeStep(kBT, s, rho_s, rc, gamma, m, a, Fx):
 
     return(min(dt1, dt2, dt3)/2.)
 
-def get_visco(file, L, rho):
-    f = h5py.File(file)
-
-    vy = f['velocities'][0,0,:,1]
-    iL = int(vy.shape[0])
-
-    xmin=0.5
-    xmax=iL-0.5
-    x=np.linspace(xmin, xmax, iL)
-
-    eta = np.polyfit(x[:iL], vy[:iL], 1)[0]
-    return eta
-
-def run_shear_flow(*,
-                   p: dict,
+def compute_density(p: dict,
                    comm: MPI.Comm,
                    out: tuple,
                    ranks: tuple=(1,1,1),
@@ -77,6 +63,11 @@ def run_shear_flow(*,
     bufferAlpha = p['obmd']['bufferAlpha']
     bufferTau   = p['obmd']['bufferTau']
     ptan        = p['obmd']['ptan']
+    pext        = p['obmd']['pext']
+
+    # OBMD parameters
+    #alpha=0.103
+    #pext = nd*kBT + alpha*a*nd**2
 
     # Set output path
     folder, name = out[0], out[1]
@@ -93,8 +84,7 @@ def run_shear_flow(*,
     domain = (Lx,Ly,Lz)	# domain
 
     # Compute time step following Lucas' thesis
-    dt = timeStep(kBT=kBT, s=2.*power, rho_s=nd, rc=rc, gamma=gamma, m=m, a=a, Fx=ptan)
-    dt = min(dt, 0.5e-2)
+    dt = timeStep(kBT=kBT, s=2.*power, rho_s=nd, rc=rc, gamma=gamma, m=m, a=a, Fx=pext)
     #print('dt =', dt)
 
     # Set runtime and output time for adaptative equilibration
@@ -104,11 +94,7 @@ def run_shear_flow(*,
     output_time = runtime
     nsteps_per_output = int(output_time/dt)
 
-    t_eq = 100
-
-    # OBMD parameters
-    alpha=0.103
-    pext = nd*kBT + alpha*a*nd**2
+    t_eq = 100    
 
     obmd = {
         "bufferSize"   : bufferSize*Lx,
@@ -219,22 +205,61 @@ def run_shear_flow(*,
     dump_every      = nsteps_sampling -1 
 
     #print(folder+name+'prof_')
-    veloField = mir.Plugins.createDumpAverage(       'field', 
+    densField = mir.Plugins.createDumpAverage(       'field', 
                                                      [water], 
                                                      sample_every, 
                                                      dump_every, 
                                                      bin_size, 
                                                      ["velocities"], 
-                                                     folder+name+'prof_')
-    u.registerPlugins(veloField)
+                                                     folder+name+'prof_pext%.2f_'%pext)
+    u.registerPlugins(densField)
     # Mirheo seems to append a more or less random number to the output filename. Be careful. 
 
     u.restart(folder = 'restart/'+name)
     u.run(nsteps_sampling, dt=dt)
-    u.deregisterPlugins(veloField)
+    u.deregisterPlugins(densField)
     
     del u
 
+def compute_speed_of_sound(p: dict,
+                   comm: MPI.Comm,
+                   out: tuple,
+                   ranks: tuple=(1,1,1)):
+    
+    import glob
+    import h5py
+    from scipy.optimize import curve_fit
+
+    folder, name = out[0], out[1]
+
+    list_pext=np.linspace(20,25,5)
+    list_density = []
+
+    for pext in list_pext:
+        p['obmd']['pext']=pext
+        compute_density(p, comm, out, ranks)
+
+        #print(folder+name+'prof_pext%.2f*.h5'%pext)
+        file = glob.glob(folder+name+'prof_pext%.2f*.h5'%pext)[0]
+        f_in = h5py.File(file)
+
+        rhox = f_in['number_densities'][0,0,:]
+
+        #print(np.mean(rhox[2:-2]))
+        list_density.append(np.mean(rhox[2:-2]))
+
+    def func(rho, a, b):
+        # quadratic equation of state
+        return a * rho * rho + b * rho
+    
+    popt_open, pcov_open = curve_fit(func, list_density, list_pext)
+    c_sound_open = np.sqrt(2*popt_open[0]*p['simu']['nd'] + popt_open[1])
+    #print('open speed of sound: ', c_sound_open)
+    #plt.figure(figsize=(4, 3))
+    #error_open = np.sqrt(np.diag(pcov_open))
+    #error_c_open = np.sqrt(np.sqrt(2*n*2*n*error_open[0]+error_open[1]))
+
+    return(c_sound_open)
 
 def load_parameters(filename: str):
     import pickle
