@@ -84,6 +84,10 @@ def F(s,X):
     vy = f_in['velocities'][0,0,:,1]
     iL = int(vy.shape[0])
 
+    bufferSize = int(obmd['bufferSize']*iL)+1
+    inside = vy[bufferSize:-bufferSize]
+    iL = iL[bufferSize:-bufferSize]
+
     # Log the viscosity computation
     if rank == 0:
       with open("logs/korali.log", "a") as f:
@@ -93,7 +97,7 @@ def F(s,X):
     xmin = 0.5
     xmax = iL-0.5
     x    = np.linspace(xmin, xmax, iL)
-    coeffs, cov = np.polyfit(x, vy, 1, cov=True)
+    coeffs, cov = np.polyfit(x, inside, 1, cov=True)
     err = np.sqrt(np.diag(cov))[0]
     rel_err = err/coeffs[0]
     eta  = ptan/(coeffs[0])

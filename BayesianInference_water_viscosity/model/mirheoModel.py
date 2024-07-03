@@ -94,6 +94,7 @@ def run_shear_flow(*,
 
     # Compute time step following Lucas' thesis
     dt = timeStep(kBT=kBT, s=2.*power, rho_s=nd, rc=rc, gamma=gamma, m=m, a=a, Fx=ptan)
+    dt = min(dt, 0.5e-2)
     #print('dt =', dt)
 
     # Set runtime and output time for adaptative equilibration

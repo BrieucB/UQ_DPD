@@ -8,7 +8,7 @@ constants = {
 
     # DPD parameters
     'nd'        : 3.0,            # Number density (DPD units, 1/L**3)
-    'kBT_s'     : 0.01,        # Energy scale (DPD units, J)
+    'kBT_s'     : 1.0,        # Energy scale (DPD units, J)
     'm'         : 1.0,             # Mass of a DPD bead (DPD units, M)
     'rc'        : 1.0,            # Cutoff radius (DPD units, L)
 
@@ -19,7 +19,7 @@ constants = {
 
 # Compute the scaling units
 size_water = 2.75e-10 # Size of a water molecule
-Nm         = 8.0 # Number of water molecules in a DPD bead
+Nm         = 1.0e6 # Number of water molecules in a DPD bead
 ul         = size_water * Nm**(1/3) # Length scale (m)
 #ul         = # 0.5e-6 #35e-9/1.0 # real/simu : 35nm = standard length of a gas vesicle 
 um         = constants['rho_water']*(ul**3) / constants['nd']
