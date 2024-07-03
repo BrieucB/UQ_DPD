@@ -86,7 +86,7 @@ def F(s,X):
 
     bufferSize = int(obmd['bufferSize']*iL)+1
     inside = vy[bufferSize:-bufferSize]
-    iL = iL[bufferSize:-bufferSize]
+    iL = int(inside.shape[0])
 
     # Log the viscosity computation
     if rank == 0:
