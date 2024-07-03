@@ -19,7 +19,7 @@ constants = {
 
 # Compute the scaling units
 size_water = 2.75e-10 # Size of a water molecule
-Nm         = 1.0e6 # Number of water molecules in a DPD bead
+Nm         = 8.0 # Number of water molecules in a DPD bead
 ul         = size_water * Nm**(1/3) # Length scale (m)
 #ul         = # 0.5e-6 #35e-9/1.0 # real/simu : 35nm = standard length of a gas vesicle 
 um         = constants['rho_water']*(ul**3) / constants['nd']
@@ -40,7 +40,7 @@ obmd = {
     'bufferSize'  : 0.15,
     'bufferAlpha' : 0.7,
     'bufferTau'   : 10.0,
-    'ptan'        : 1.0,
+    'ptan'        : 0.5,
 }
 
 def convertToDPDUnits(file, units):
