@@ -104,10 +104,10 @@ e2["Distributions"][2]["Minimum"] = 0.1
 e2["Distributions"][2]["Maximum"] = 50.0
 
 e2["Variables"][0]["Name"] = "a"
-e2["Variables"][0]["Prior Distribution"] = "Uniform 0"
+e2["Variables"][0]["Prior Distribution"] = "Uniform a"
 
 e2["Variables"][1]["Name"] = "gamma"
-e2["Variables"][1]["Prior Distribution"] = "Uniform 1"
+e2["Variables"][1]["Prior Distribution"] = "Uniform gamma"
 
 # e2["Variables"][2]["Name"] = "power"
 # e2["Variables"][2]["Prior Distribution"] = "Uniform_0_2"

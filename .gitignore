@@ -57,3 +57,8 @@ UncertaintyProp_water/model/__pycache__/
 BayesianInference_water/korali.log
 UncertaintyProp_water/_setup/_korali_result_propagation/
 UncertaintyProp_water/korali.log
+BayesianInference_water_viscosity/data/data_density_viscosity_DPD.dat
+BayesianInference_water_viscosity/model/__pycache__/
+BayesianInference_EMB_buckling/model/__pycache__/
+
+BayesianInference_water_viscosity/model/__pycache__/
