@@ -10,13 +10,6 @@ units = {
     'ETA_UNIT' : um/(ul*ut), # Viscosity scale (Dimensionless)
 }
 
-obmd = {
-    'bufferSize'  : 0.15,
-    'bufferAlpha' : 0.7,
-    'bufferTau'   : 10.0,
-    'ptan'        : 0.5,
-}
-
 def convertToDPDUnits(file, units):
     """
     Convert the data in the file to DPD units

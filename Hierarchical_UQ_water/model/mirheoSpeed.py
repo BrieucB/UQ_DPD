@@ -62,8 +62,8 @@ def compute_density(p: dict,
     bufferSize  = p['obmd']['bufferSize']
     bufferAlpha = p['obmd']['bufferAlpha']
     bufferTau   = p['obmd']['bufferTau']
-    ptan        = p['obmd']['ptan']
     pext        = p['obmd']['pext']
+    ptan        = p['obmd']['ptan']
 
     # OBMD parameters
     #alpha=0.103
@@ -232,7 +232,13 @@ def compute_speed_of_sound(p: dict,
 
     folder, name = out[0], out[1]
 
-    list_pext=np.linspace(20,25,5)
+    alpha=0.103
+    nd = p['simu']['nd']
+    kBT = p['dpd']['kBT']
+    a = p['dpd']['a']
+    pext0 = nd*kBT + alpha*a*nd**2
+
+    list_pext=np.linspace(0.9*pext0,1.1*pext0,5)
     list_density = []
 
     for pext in list_pext:
@@ -246,7 +252,7 @@ def compute_speed_of_sound(p: dict,
         rhox = f_in['number_densities'][0,0,:]
 
         #print(np.mean(rhox[2:-2]))
-        list_density.append(np.mean(rhox[2:-2]))
+        list_density.append(np.mean(rhox[2:-2])) # TODO: Make this cleaner
 
     def func(rho, a, b):
         # quadratic equation of state
@@ -259,6 +265,7 @@ def compute_speed_of_sound(p: dict,
     #error_open = np.sqrt(np.diag(pcov_open))
     #error_c_open = np.sqrt(np.sqrt(2*n*2*n*error_open[0]+error_open[1]))
 
+    print('c_sound_open =', c_sound_open)
     return(c_sound_open)
 
 def load_parameters(filename: str):

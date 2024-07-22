@@ -62,3 +62,6 @@ BayesianInference_water_viscosity/model/__pycache__/
 BayesianInference_EMB_buckling/model/__pycache__/
 
 BayesianInference_water_viscosity/model/__pycache__/
+Hierarchical_UQ_water/velocities_speed/
+BayesianInference_EMB_buckling/out/
+BayesianInference_EMB_buckling/volume_time.png

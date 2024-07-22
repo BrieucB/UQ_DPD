@@ -34,19 +34,17 @@ def timeStep(kBT, s, rho_s, rc, gamma, m, a, Fx):
     return(min(dt1, dt2, dt3)/2.)
 
 
-def run_equil_EMB(*,
-                   p: dict,
-                   comm: MPI.Comm,
-                   out: tuple,
-                   ranks: tuple=(1,1,1),
-                   dump: bool=False):
+def run_equil_EMB(p: dict,
+                comm: MPI.Comm,
+                out: tuple,
+                ranks: tuple=(1,1,1),
+                equilibration: bool=False):
     """
     Argument:
         p: parameters of the simulation and DPD parameters.
         comm: each Mirheo simulation needs its own MPI_COMM assigned by Korali.
         out: folder + name of the output file.
         ranks: Mirheo ranks
-        dump: if True, will dump simu data over time (TODO).
     """
 
     # Set output path
@@ -60,8 +58,7 @@ def run_equil_EMB(*,
     # Compute time step following Lucas' thesis
     #dt = timeStep(kBT=kBT, s=2.*power, rho_s=nd, rc=rc, gamma=gamma, m=m, a=a, Fx=ptan)
     #dt = min(dt, 0.5e-2)
-    dt = 0.001
-    
+    #     
     ######################################################
     # set-up parameters
 
@@ -86,19 +83,27 @@ def run_equil_EMB(*,
     mw = p["mw"]
     mg = p["mg"]
 
-    pos_q = np.reshape(np.loadtxt('posq.txt'), (-1, 7))
-
-    ranks = (1, 1, 1)                       
+    pos_q = p["pos_q"]
+    prms_emb = p["emb"]
+    
     domain = (Lx, Ly, Lz)   
 
     ######################################################
     checkpoint_step = numsteps - 1
 
     #mirheo coordinator
-    u = mir.Mirheo(ranks, domain, debug_level = 3, log_filename = 'logs/log', checkpoint_folder = "restart/", checkpoint_every = checkpoint_step)
+    u = mir.Mirheo(ranks, 
+                   domain, 
+                   debug_level = 0, 
+                   log_filename = 'logs/log', 
+                   checkpoint_folder = "restart/" + name, 
+                   checkpoint_every = checkpoint_step,
+                   no_splash         = True,
+                   comm_ptr          = MPI._addressof(comm)
+                   )
 
     #loads the off script
-    mesh = trimesh.load_mesh(objFile)
+    mesh = trimesh.load_mesh('model/' + objFile)
 
     #reads vertices, faces
     mesh_emb = mir.ParticleVectors.MembraneMesh(mesh.vertices.tolist(), mesh.faces.tolist())
@@ -134,6 +139,8 @@ def run_equil_EMB(*,
 
     #interactions
     int_emb = mir.Interactions.MembraneForces("int_emb", "Lim", "KantorStressFree", **prms_emb, stress_free = True) 
+    #int_emb = mir.Interactions.MembraneForces("int_emb", "Lim", "Kantor", **prms_emb, stress_free = True) 
+
     dpd_thermostat = mir.Interactions.Pairwise('dpd_thermostat', rc, kind = "DPD", a = 0.0, gamma = gamma_dpd, kBT = kbt, power = s)
     dpd_wat = mir.Interactions.Pairwise('dpd_wat', rc, kind = "DPD", a = strong * aii, gamma = gamma_dpd, kBT = kbt, power = s)
     dpd = mir.Interactions.Pairwise('dpd', rc, kind = "DPD", a = aii, gamma = gamma_dpd, kBT = kbt, power = s)
@@ -182,20 +189,112 @@ def run_equil_EMB(*,
     #u.registerPlugins(mir.Plugins.createStats('stats', every = nevery))
     #u.registerPlugins(mir.Plugins.createDumpXYZ('xyz_dump', emb, nevery, f"trj_eq/sim{args.simnum}"))
     #u.registerPlugins(mir.Plugins.createDumpObjectStats('objStats', emb, nevery, filename = 'stats/object' + args.simnum))
-    u.run(numsteps, dt = dt)
+    if equilibration:
+        u.run(numsteps, dt = dt)
 
-    u.restart("restart/")
-    #u.registerPlugins(mir.Plugins.createStats('stats', every = nevery))
-    u.registerPlugins(mir.Plugins.createDumpXYZ('xyz_dump', emb, nevery, f"trj_eq/sim{args.simnum}"))
-    #u.registerPlugins(mir.Plugins.createDumpObjectStats('objStats', emb, nevery, filename = 'stats/object' + args.simnum))
-    u.run(numsteps, dt = dt)
+    else:
+        u.restart("restart/" + name)
+        #u.registerPlugins(mir.Plugins.createStats('stats', every = nevery))
+        u.registerPlugins(mir.Plugins.createDumpXYZ('xyz_dump', emb, nevery, folder + name  + 'strong%.2f/'%strong))
+        #u.registerPlugins(mir.Plugins.createDumpObjectStats('objStats', emb, nevery, filename = 'stats/object' + args.simnum))
+        u.run(numsteps, dt = dt)
         
     del u
 
-def mirheo_pbuckling():
+def mirheo_pbuckling(p: dict,
+                   comm: MPI.Comm,
+                   out: tuple,
+                   ranks: tuple=(1,1,1)):
     """
     Compute the buckling pressure by running multiple simulations with increasing pressures
     """
+    import os, fnmatch
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import axes3d
+    
+    folder, name = out[0], out[1]
+    objFile = p["objFile"]
+
+    list_strong = np.linspace(1.0, 30.0, 10)
+
+    # Run equilibration
+    strong = list_strong[0]
+    p['strong'] = strong
+    run_equil_EMB(p, comm, out, ranks, equilibration = True) # Adapt the equilibration steps?
+
+    # Quench the system
+    for strong in list_strong:
+        p['strong'] = strong
+        run_equil_EMB(p, comm, out, ranks, equilibration = False)
+        
+        filepath = folder + name
+        subfolder = 'strong%.2f/'%strong
+        #new_color = 'blue'
+        xyz_files = np.sort(os.listdir(filepath + '/'+  subfolder))
+        print(subfolder)
+        xyz_files = fnmatch.filter(xyz_files, f'*.xyz')
+        xyz = xyz_files[-1]
+        r = np.loadtxt(filepath + '/' +  subfolder + '/' + xyz, skiprows = 2)
+
+        # Plot X,Y,Z
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        X = r[:,1]
+        Y = r[:,2]
+        Z = r[:,3]
+        ax.plot_trisurf(X, Y, Z, color='white', edgecolors='grey', alpha=0.5)
+        ax.scatter(X, Y, Z, c='red')
+        plt.savefig(filepath + '/' + subfolder + '/' + 'final_3d_shape.png')
+
+    cnt = 0
+    mesh = trimesh.load_mesh('model/' + objFile)
+    vols = []
+    time = [] 
+    vol_time = []
+    filepath = folder + name
+    sim_folder = np.sort(os.listdir(filepath))
+    print(sim_folder)
+
+    for strong in list_strong:
+        subfolder = 'strong%.2f/'%strong
+        #new_color = 'blue'
+        xyz_files = np.sort(os.listdir(filepath + '/'+  subfolder))
+        print(subfolder)
+        xyz_files = fnmatch.filter(xyz_files, f'*.xyz')
+        #cnt = 0 
+        for xyz in xyz_files:
+            r = np.loadtxt(filepath + '/' +  subfolder + '/' + xyz, skiprows = 2)
+            mesh.vertices[:,0] = r[:,1]
+            mesh.vertices[:,1] = r[:,2]
+            mesh.vertices[:,2] = r[:,3]
+            vol_time.append(np.abs(mesh.volume))
+            time.append(cnt)
+            cnt += 1
+        
+        plt.plot(time, vol_time, marker = 'o', linestyle = '-')
+
+        time = [] 
+        vol_time = [] 
+        xyz = xyz_files[-1]
+        r = np.loadtxt(filepath + '/' +  subfolder + '/' + xyz, skiprows = 2)
+        mesh.vertices[:,0] = r[:,1]
+        mesh.vertices[:,1] = r[:,2]
+        mesh.vertices[:,2] = r[:,3]
+        vols.append(np.abs(mesh.volume))
+
+    plt.savefig(filepath + '/' + 'volume_time.png')
+    
+    plt.clf()
+    plt.scatter(list_strong, vols, marker = 'o', linestyle = '-')
+    plt.savefig(filepath + '/'+ 'volume.png')
+
+    strong_b = np.where(vols<0.5*vols[0])[0][0]
+
+    alpha=0.103
+    rhow = p["rhow"]
+    kbt = p["kbt"]
+    aii = p["aii"]
+    pbuckling = rhow*kbt + alpha*strong_b*aii*rhow**2
 
     return(pbuckling)
 
@@ -214,13 +313,6 @@ def main(argv):
     p = load_parameters(args.parameters)
 
     comm = MPI.COMM_WORLD
-
-    run_Poiseuille(p=p,
-                   ranks=args.ranks,
-                   comm=comm,
-                   out=[os.getcwd(),"/h5/"],
-                   dump=args.dump)
-
 
 if __name__ == '__main__':
     main(sys.argv[1:]) 

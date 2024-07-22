@@ -117,7 +117,7 @@ e2["Variables"][2]["Prior Distribution"] = "Uniform_sig"
 
 e2["Solver"]["Type"] = "Sampler/TMCMC"
 e2["Solver"]["Population Size"] = pop_size
-e2["Solver"]["Target Coefficient Of Variation"] = 0.6
+e2["Solver"]["Target Coefficient Of Variation"] = 0.4
 e2["Solver"]["Covariance Scaling"] = 0.02
 
 e2["File Output"]["Path"] = "_setup/results_phase_1/" + "compressibility"
@@ -135,4 +135,4 @@ k["Conduit"]["Ranks Per Worker"] = 2
 # k["Profiling"]["Detail"] = "Full"
 # k["Profiling"]["Frequency"] = 0.5
 
-k.run(eList)
+k.run(eList[::-1])

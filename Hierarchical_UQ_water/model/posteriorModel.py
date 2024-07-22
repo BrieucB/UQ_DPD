@@ -46,7 +46,10 @@ def computeSpeed(s,X):
   kBT_s     = constants['kBT_s']  # Energy scale of the DPD particles
   m         = constants['m']      # Mass of a DPD bead
   rc        = constants['rc']     # Cutoff radius
-  ptan      = obmd['ptan']        # Tangential pressure
+  
+  ptan      = 0.0        # Tangential pressure to zero for this experiment
+  obmd['ptan'] = ptan 
+
 
   s["Reference Evaluations"] = []
   s["Standard Deviation"]    = []
@@ -56,7 +59,7 @@ def computeSpeed(s,X):
   for Xi in X: # Loop over the reference points: here on density
     
     # Export the simulation parameters
-    simu_param = {'m':m, 'nd':Xi, 'rc':rc, 'L':L, 'ptan':ptan}
+    simu_param = {'m':m, 'nd':Xi, 'rc':rc, 'L':L}
     dpd_param  = {'a':a, 'gamma':gamma, 'kBT':kBT_s, 'power':power}
     p          = {'simu':simu_param, 'dpd':dpd_param, 'obmd':obmd}
 
