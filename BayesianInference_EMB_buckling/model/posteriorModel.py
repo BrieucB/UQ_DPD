@@ -61,7 +61,8 @@ def compute_pbuckling(sample,X):
 
     # Run the simulation
     p['emb']['ka'] = ka
-    pbuckling = mirheo_pbuckling(p=p, ranks=(1,1,1), comm=comm, out=(folder, name))
+    pbuckling = mirheo_pbuckling(p=p, ranks=(1,1,1), comm=comm, out=(folder, name), dump=False)
+    print(pbuckling)
     
     # Output the result 
     sample["Reference Evaluations"] += [pbuckling] 
@@ -71,15 +72,15 @@ def getReferencePoints():
   """
   Returns the density in DPD units
   """
-  list_rho_s=np.loadtxt('data/data_density_viscosity_DPD.dat', skiprows=1)[:,0]
-  return list(list_rho_s)[5:6] #[::2]
+  list_rho_s=np.loadtxt('data/data_X_pbuckling_DPD.dat', skiprows=1).reshape(1,-1)[:,0]
+  return list(list_rho_s)
 
 def getReferenceData():
   """
   Returns the viscosity in DPD units
   """
-  list_eta_s=np.loadtxt('data/data_density_viscosity_DPD.dat', skiprows=1)[:,1]
-  return list(list_eta_s)[5:6] #[::2]
+  list_pb_s=np.loadtxt('data/data_X_pbuckling_DPD.dat', skiprows=1).reshape(1,-1)[:,1]
+  return list(list_pb_s)
 
 def main(argv):
   import argparse
@@ -109,7 +110,7 @@ def main(argv):
   X = getReferencePoints()
   #print(getReferenceData())
 
-  F(s,X)
+  #F(s,X)
 
   comm = MPI.COMM_WORLD
   rank = comm.Get_rank()

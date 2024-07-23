@@ -12,10 +12,6 @@ import numpy as np
 params   = np.loadtxt('metaparam.dat', skiprows=1) # pop_size, 
 pop_size = int(params[0])
 
-# Reference data setup
-#from model.units import *
-#convertToDPDUnits('data/data_density_viscosity.dat', units)
-
 comm = MPI.COMM_WORLD
 comm.Barrier()
 

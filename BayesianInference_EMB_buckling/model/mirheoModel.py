@@ -139,7 +139,6 @@ def run_equil_EMB(p: dict,
 
     #interactions
     int_emb = mir.Interactions.MembraneForces("int_emb", "Lim", "KantorStressFree", **prms_emb, stress_free = True) 
-    #int_emb = mir.Interactions.MembraneForces("int_emb", "Lim", "Kantor", **prms_emb, stress_free = True) 
 
     dpd_thermostat = mir.Interactions.Pairwise('dpd_thermostat', rc, kind = "DPD", a = 0.0, gamma = gamma_dpd, kBT = kbt, power = s)
     dpd_wat = mir.Interactions.Pairwise('dpd_wat', rc, kind = "DPD", a = strong * aii, gamma = gamma_dpd, kBT = kbt, power = s)
@@ -204,7 +203,8 @@ def run_equil_EMB(p: dict,
 def mirheo_pbuckling(p: dict,
                    comm: MPI.Comm,
                    out: tuple,
-                   ranks: tuple=(1,1,1)):
+                   ranks: tuple=(1,1,1),
+                   dump: bool=False):
     """
     Compute the buckling pressure by running multiple simulations with increasing pressures
     """
@@ -215,7 +215,7 @@ def mirheo_pbuckling(p: dict,
     folder, name = out[0], out[1]
     objFile = p["objFile"]
 
-    list_strong = np.linspace(1.0, 30.0, 10)
+    list_strong = np.linspace(1.0, 30.0, 20)
 
     # Run equilibration
     strong = list_strong[0]
@@ -227,24 +227,25 @@ def mirheo_pbuckling(p: dict,
         p['strong'] = strong
         run_equil_EMB(p, comm, out, ranks, equilibration = False)
         
-        filepath = folder + name
-        subfolder = 'strong%.2f/'%strong
-        #new_color = 'blue'
-        xyz_files = np.sort(os.listdir(filepath + '/'+  subfolder))
-        print(subfolder)
-        xyz_files = fnmatch.filter(xyz_files, f'*.xyz')
-        xyz = xyz_files[-1]
-        r = np.loadtxt(filepath + '/' +  subfolder + '/' + xyz, skiprows = 2)
+        if dump:
+            filepath = folder + name
+            subfolder = 'strong%.2f/'%strong
+            #new_color = 'blue'
+            xyz_files = np.sort(os.listdir(filepath + '/'+  subfolder))
+            print(subfolder)
+            xyz_files = fnmatch.filter(xyz_files, f'*.xyz')
+            xyz = xyz_files[-1]
+            r = np.loadtxt(filepath + '/' +  subfolder + '/' + xyz, skiprows = 2)
 
-        # Plot X,Y,Z
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        X = r[:,1]
-        Y = r[:,2]
-        Z = r[:,3]
-        ax.plot_trisurf(X, Y, Z, color='white', edgecolors='grey', alpha=0.5)
-        ax.scatter(X, Y, Z, c='red')
-        plt.savefig(filepath + '/' + subfolder + '/' + 'final_3d_shape.png')
+            # Plot X,Y,Z
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            X = r[:,1]
+            Y = r[:,2]
+            Z = r[:,3]
+            ax.plot_trisurf(X, Y, Z, color='white', edgecolors='grey', alpha=0.5)
+            ax.scatter(X, Y, Z, c='red')
+            plt.savefig(filepath + '/' + subfolder + '/' + 'final_3d_shape.png')
 
     cnt = 0
     mesh = trimesh.load_mesh('model/' + objFile)
@@ -262,19 +263,18 @@ def mirheo_pbuckling(p: dict,
         print(subfolder)
         xyz_files = fnmatch.filter(xyz_files, f'*.xyz')
         #cnt = 0 
-        for xyz in xyz_files:
-            r = np.loadtxt(filepath + '/' +  subfolder + '/' + xyz, skiprows = 2)
-            mesh.vertices[:,0] = r[:,1]
-            mesh.vertices[:,1] = r[:,2]
-            mesh.vertices[:,2] = r[:,3]
-            vol_time.append(np.abs(mesh.volume))
-            time.append(cnt)
-            cnt += 1
-        
-        plt.plot(time, vol_time, marker = 'o', linestyle = '-')
+        if dump:
+            for xyz in xyz_files:
+                r = np.loadtxt(filepath + '/' +  subfolder + '/' + xyz, skiprows = 2)
+                mesh.vertices[:,0] = r[:,1]
+                mesh.vertices[:,1] = r[:,2]
+                mesh.vertices[:,2] = r[:,3]
+                vol_time.append(np.abs(mesh.volume))
+                time.append(cnt)
+                cnt += 1
+            
+            plt.plot(time, vol_time, marker = 'o', linestyle = '-')
 
-        time = [] 
-        vol_time = [] 
         xyz = xyz_files[-1]
         r = np.loadtxt(filepath + '/' +  subfolder + '/' + xyz, skiprows = 2)
         mesh.vertices[:,0] = r[:,1]
@@ -282,7 +282,8 @@ def mirheo_pbuckling(p: dict,
         mesh.vertices[:,2] = r[:,3]
         vols.append(np.abs(mesh.volume))
 
-    plt.savefig(filepath + '/' + 'volume_time.png')
+    if dump:
+        plt.savefig(filepath + '/' + 'volume_time.png')
     
     plt.clf()
     plt.scatter(list_strong, vols, marker = 'o', linestyle = '-')
@@ -310,7 +311,7 @@ def main(argv):
                         help="Number of ranks in each direction.")
     args = parser.parse_args(argv)
 
-    p = load_parameters(args.parameters)
+    #p = load_parameters(args.parameters)
 
     comm = MPI.COMM_WORLD
 
