@@ -46,17 +46,17 @@ e["Solver"]["Covariance Scaling"] = 0.04
 # Configuring the problem's random distributions
 e["Distributions"][0]["Name"] = "Prior_a"
 e["Distributions"][0]["Type"] = "Univariate/Uniform"
-e["Distributions"][0]["Minimum"] = +20.0
-e["Distributions"][0]["Maximum"] = +30.0
+e["Distributions"][0]["Minimum"] = +150.0
+e["Distributions"][0]["Maximum"] = +250.0
 
 e["Distributions"][1]["Name"] = "Prior_gamma"
 e["Distributions"][1]["Type"] = "Univariate/Uniform"
-e["Distributions"][1]["Minimum"] = +4.0
-e["Distributions"][1]["Maximum"] = +15.0
+e["Distributions"][1]["Minimum"] = +1.0
+e["Distributions"][1]["Maximum"] = +100.0
 
 e["Distributions"][2]["Name"] = "Prior_power"
 e["Distributions"][2]["Type"] = "Univariate/Uniform"
-e["Distributions"][2]["Minimum"] = +0.5
+e["Distributions"][2]["Minimum"] = +0.1
 e["Distributions"][2]["Maximum"] = +1.0
 
 e["Distributions"][3]["Name"] = "Prior_sigma"
@@ -67,7 +67,7 @@ e["Distributions"][3]["Maximum"] = +50.0
 # Configuring the problem's variables
 e["Variables"][0]["Name"] = "a"
 e["Variables"][0]["Prior Distribution"] = "Prior_a"
-e["Variables"][0]["Initial Value"] = +0.1
+e["Variables"][0]["Initial Value"] = +200.0
 
 e["Variables"][1]["Name"] = "gamma"
 e["Variables"][1]["Prior Distribution"] = "Prior_gamma"

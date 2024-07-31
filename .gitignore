@@ -65,3 +65,14 @@ BayesianInference_water_viscosity/model/__pycache__/
 Hierarchical_UQ_water/velocities_speed/
 BayesianInference_EMB_buckling/out/
 BayesianInference_EMB_buckling/volume_time.png
+BayesianInference_EMB_buckling/buckling_odpd/src/parameter/
+BayesianInference_EMB_buckling/buckling_odpd/src/trj_eq/
+BayesianInference_EMB_buckling/buckling_odpd/src/analysis/pressure_time.png
+BayesianInference_EMB_buckling/buckling_odpd/src/pressure/
+BayesianInference_EMB_buckling/buckling_odpd/src/commands.txt
+BayesianInference_EMB_buckling/buckling_odpd_korali/src/__pycache__/
+BayesianInference_EMB_buckling/buckling_odpd_korali/src/analysis/pressure_time.png
+BayesianInference_water_sound/model/__pycache__/
+BayesianInference_EMB_buckling/emul_korali_run.py
+BayesianInference_EMB_buckling/buckling_odpd_korali/src/commands.txt
+BayesianInference_EMB_buckling/buckling_odpd_korali/src/posq.txt

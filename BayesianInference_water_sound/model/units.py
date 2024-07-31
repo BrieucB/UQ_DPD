@@ -37,7 +37,7 @@ units = {
 }
 
 obmd = {
-    'bufferSize'  : 0.15,
+    'bufferSize'  : 0.2,
     'bufferAlpha' : 0.7,
     'bufferTau'   : 10.0,
     'ptan'        : 0.0,

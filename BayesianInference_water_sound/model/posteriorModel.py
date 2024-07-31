@@ -15,15 +15,15 @@ def F(s,X):
   import shutil
 
   # read parameters from Korali
-  # a     = 0.12
-  # gamma = 75.0 
-  # power = 0.125 
-  # sig   = s["Parameters"][3]
-
-  a     = s["Parameters"][0]
-  gamma = s["Parameters"][1]
-  power = s["Parameters"][2]
+  a     = 200.0
+  gamma = 45. 
+  power = 0.125 
   sig   = s["Parameters"][3]
+
+  # a     = s["Parameters"][0]
+  # gamma = s["Parameters"][1]
+  # power = s["Parameters"][2]
+  # sig   = s["Parameters"][3]
 
   # Read the MPI Comm assigned by Korali and feed it to the Mirheo simulation
   # If running on stand alone, use standard MPI communicator
@@ -67,6 +67,7 @@ def F(s,X):
       with open("logs/korali.log", "a") as f:
         f.write(f"[Mirheo run] a={a}, gamma={gamma}, power={power}, sig={sig}, rho_s = {Xi}\n")
 
+    
     # Run the simulation
     #run_Poiseuille(p=p, ranks=(1,1,1), dump=False, comm=comm, out=(folder, name))
     speed = compute_speed_of_sound(p=p, ranks=(1,1,1), comm=comm, out=(folder, name))

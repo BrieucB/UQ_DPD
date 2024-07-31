@@ -62,7 +62,7 @@ def compute_density(p: dict,
     bufferSize  = p['obmd']['bufferSize']
     bufferAlpha = p['obmd']['bufferAlpha']
     bufferTau   = p['obmd']['bufferTau']
-    ptan        = p['obmd']['ptan']
+    ptan        = 0 #p['obmd']['ptan']
     pext        = p['obmd']['pext']
 
     # OBMD parameters
@@ -85,6 +85,7 @@ def compute_density(p: dict,
 
     # Compute time step following Lucas' thesis
     dt = timeStep(kBT=kBT, s=2.*power, rho_s=nd, rc=rc, gamma=gamma, m=m, a=a, Fx=pext)
+    #dt = 0.001
     #print('dt =', dt)
 
     # Set runtime and output time for adaptative equilibration
@@ -94,7 +95,7 @@ def compute_density(p: dict,
     output_time = runtime
     nsteps_per_output = int(output_time/dt)
 
-    t_eq = 100    
+    t_eq = 20    
 
     obmd = {
         "bufferSize"   : bufferSize*Lx,
@@ -210,7 +211,7 @@ def compute_density(p: dict,
                                                      sample_every, 
                                                      dump_every, 
                                                      bin_size, 
-                                                     ["velocities"], 
+                                                     ["velocities"], # interested only in density, but need to also output this for the plugin to work
                                                      folder+name+'prof_pext%.2f_'%pext)
     u.registerPlugins(densField)
     # Mirheo seems to append a more or less random number to the output filename. Be careful. 
@@ -229,15 +230,18 @@ def compute_speed_of_sound(p: dict,
     import glob
     import h5py
     from scipy.optimize import curve_fit
-
+    import matplotlib.pyplot as plt
+    #from matplotlib.pyplot import plot, savefig, clf
     folder, name = out[0], out[1]
 
-    list_pext=np.linspace(20,25,5)
+    pext = p['simu']['nd']*p['dpd']['kBT'] + 0.103*p['dpd']['a']*p['simu']['nd']**2
+    list_pext=np.linspace(0.1*pext, 10.*pext, 8)
+
     list_density = []
 
     for pext in list_pext:
         p['obmd']['pext']=pext
-        compute_density(p, comm, out, ranks)
+        #compute_density(p, comm, out, ranks)
 
         #print(folder+name+'prof_pext%.2f*.h5'%pext)
         file = glob.glob(folder+name+'prof_pext%.2f*.h5'%pext)[0]
@@ -246,18 +250,26 @@ def compute_speed_of_sound(p: dict,
         rhox = f_in['number_densities'][0,0,:]
 
         #print(np.mean(rhox[2:-2]))
-        list_density.append(np.mean(rhox[2:-2]))
+        list_density.append(np.mean(rhox[4:-4]))
 
-    def func(rho, a, b):
+    def func(rho, a, b): # p(rho)
         # quadratic equation of state
         return a * rho * rho + b * rho
     
     popt_open, pcov_open = curve_fit(func, list_density, list_pext)
     c_sound_open = np.sqrt(2*popt_open[0]*p['simu']['nd'] + popt_open[1])
-    print('open speed of sound: ', c_sound_open)
+    print('speed of sound: ', c_sound_open)
     #plt.figure(figsize=(4, 3))
     #error_open = np.sqrt(np.diag(pcov_open))
     #error_c_open = np.sqrt(np.sqrt(2*n*2*n*error_open[0]+error_open[1]))
+
+    plt.clf()
+    plt.plot(list_density, list_pext, 'o', label='data')
+    vec_density = np.linspace(0.99*min(list_density), 1.01*max(list_density), 100)
+    plt.plot(vec_density, func(vec_density, *popt_open), '-', label='fit')
+    plt.savefig(folder+name+'eos.png')
+
+    print('analytical', soundCelerity(1, 0.25, 3, 1, 4.5, 1, 200))
 
     return(c_sound_open)
 
