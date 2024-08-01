@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 
 import sys
+from mpi4py import MPI
 
-def run_equil(source_path,
-              simu_path, 
-              simnum,
-              equil,
-              restart):
+def run_equil(source_path: str,
+              simu_path: str, 
+              simnum: str,
+              equil: bool,
+              restart: bool,
+              comm: MPI.Comm):
     
     import mirheo as mir
     import numpy as np
     import trimesh
     import yaml
     import os
-
 
     dir_name = simu_path + 'restart'
     if(restart):
@@ -79,7 +80,14 @@ def run_equil(source_path,
     checkpoint_step = numsteps - 1
 
     #mirheo coordinator
-    u = mir.Mirheo(ranks, domain, debug_level = 3, log_filename = 'logs/log', checkpoint_folder = simu_path + "restart/", checkpoint_every = checkpoint_step)
+    u = mir.Mirheo(nranks            = ranks, 
+                   domain            = domain, 
+                   debug_level       = 3, 
+                   log_filename      = 'logs/log', 
+                   checkpoint_folder = simu_path + "restart/", 
+                   checkpoint_every  = checkpoint_step,
+                   no_splash         = True,
+                   comm_ptr          = MPI._addressof(comm))
 
     #loads the off script
     mesh = trimesh.load_mesh(source_path + objFile)
@@ -176,14 +184,14 @@ def run_equil(source_path,
         print('equilibration')
         u.registerPlugins(mir.Plugins.createStats('stats', every = nevery))
         u.registerPlugins(mir.Plugins.createDumpXYZ('xyz_dump', emb, nevery, f"{simu_path}trj_eq/sim{simnum}"))
-        u.registerPlugins(mir.Plugins.createDumpXYZ('xyz_dump_gas', gas, nevery, f"{simu_path}trj_eq/sim{simnum}"))
-        u.registerPlugins(mir.Plugins.createVirialPressurePlugin('virial', water, predicate_all_domain, h, nevery, f'{simu_path}pressure/p' + simnum))
-        u.registerPlugins(mir.Plugins.createDumpObjectStats('objStats', emb, nevery, filename = simu_path + 'stats/object' + simnum))
+        #u.registerPlugins(mir.Plugins.createDumpXYZ('xyz_dump_gas', gas, nevery, f"{simu_path}trj_eq/sim{simnum}"))
+        #u.registerPlugins(mir.Plugins.createVirialPressurePlugin('virial', water, predicate_all_domain, h, nevery, f'{simu_path}pressure/p' + simnum))
+        #u.registerPlugins(mir.Plugins.createDumpObjectStats('objStats', emb, nevery, filename = simu_path + 'stats/object' + simnum))
         u.run(numsteps, dt = dt)
         del u
 
     if restart:
-        print('productionn')
+        print('production')
         u.restart("restart/")
         u.registerPlugins(mir.Plugins.createStats('stats', every = nevery))
         u.registerPlugins(mir.Plugins.createDumpXYZ('xyz_dump', emb, nevery, f"{simu_path}trj_eq/sim{simnum}"))

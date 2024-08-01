@@ -76,3 +76,4 @@ BayesianInference_water_sound/model/__pycache__/
 BayesianInference_EMB_buckling/emul_korali_run.py
 BayesianInference_EMB_buckling/buckling_odpd_korali/src/commands.txt
 BayesianInference_EMB_buckling/buckling_odpd_korali/src/posq.txt
+BayesianInference_EMB_buckling/__pycache__/posteriorBuckling.cpython-310.pyc

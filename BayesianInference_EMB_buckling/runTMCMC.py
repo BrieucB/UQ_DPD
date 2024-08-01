@@ -5,8 +5,10 @@ import os
 
 import korali
 from mpi4py import MPI
-from model.posteriorModel import *
+from model.posteriorModel import getReferencePoints, getReferenceData
 import numpy as np
+from posteriorBuckling import compute_pbuckling
+
 
 # Optimization parameters
 params   = np.loadtxt('metaparam.dat', skiprows=1) # pop_size, 
