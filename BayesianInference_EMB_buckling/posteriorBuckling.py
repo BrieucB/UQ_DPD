@@ -23,7 +23,7 @@ def compute_pbuckling(sample,X):
   
   # Read parameters to be optimized from Korali
   ka, sig = sample["Parameters"]
-  ka = 426863.0
+  #ka = 597609.5617529879
 
   # Read the MPI Comm assigned by Korali and feed it to the Mirheo simulation
   # If running on stand alone, use standard MPI communicator
@@ -43,38 +43,41 @@ def compute_pbuckling(sample,X):
   for Xi in X: # Loop over the reference points: here on density
 
     # Set output file
-    folder = "out/"
-    name   = 'ka%.2f_n%d/'%(ka,n_ref)
+    folder    = "out/"
+    name      = 'ka%.2f_n%d/'%(ka,n_ref)
     simu_path = folder + name
-    simnum = '%05d'%1
-    n_ref += 1
+    simnum    = '%05d'%1
+    n_ref    += 1
 
-    # Run the simulation
-    # generate_sim(source_path='buckling_odpd_korali/src/', 
-    #          simu_path=simu_path,
-    #          par=None, 
-    #          obj='emb', 
-    #          forward=None, 
-    #          hysteresis=None, 
-    #          parallel=True, 
-    #          g=1, 
-    #          N=1, 
-    #          first=None, 
-    #          numJobs=1)
-    
-    
+    os.system(f'mkdir -p {simu_path}')
 
-    # write_parameters(source_path='buckling_odpd_korali/src/', 
-    #                 simu_path=simu_path,
-    #                 simnum=simnum)
+    #Run the simulation
+    if rank == 0:
+      generate_sim(source_path = 'buckling_odpd_korali/src/', 
+                    simu_path   = simu_path,
+                    par         = [['buck', '25.0', '0.0', '1']], #None, 
+                    obj         = 'emb', 
+                    forward     = None, 
+                    hysteresis  = None, 
+                    parallel    = True, 
+                    g           = 1, 
+                    N           = 1, 
+                    first       = None, 
+                    numJobs     = 1)
+      
+      write_parameters(source_path = 'buckling_odpd_korali/src/', 
+                        simu_path   = simu_path,
+                        simnum      = simnum)
+      
+    comm.Barrier()
 
-    # run_equil(source_path='buckling_odpd_korali/src/', 
-    #           simu_path=simu_path,
-    #           simnum=simnum,
-    #           equil=True,
-    #           restart=False,
-    #           comm=comm)
-    
+    #assert False
+    run_equil(source_path = 'buckling_odpd_korali/src/', 
+              simu_path   = simu_path,
+              simnum      = simnum,
+              equil       = True,
+              restart     = False,
+              comm        = comm)
     
     # Compute the buckling pressure
     filename_default = simu_path + 'parameter/parameters-default' + simnum + '.yaml'
@@ -84,6 +87,7 @@ def compute_pbuckling(sample,X):
     xyzpath = simu_path + f"/trj_eq/sim{simnum}/"
     xyz_files = np.sort(os.listdir(xyzpath))
     xyz_files = fnmatch.filter(xyz_files, f'emb*.xyz')
+    #print(xyz_files)
 
     time = [] 
     vol_time = []
@@ -99,32 +103,36 @@ def compute_pbuckling(sample,X):
         time.append(cnt)
         cnt += 1
     
-    # buck = parameters_default["buck"]
-    # aii = parameters_default["aii"]
-    # alfa = parameters_default["alpha"]
-    # rhow = parameters_default["rhow"]
-    # numsteps_eq = parameters_default["numsteps_eq"]
-    # dt_eq = parameters_default["dt_eq"]
+    buck = parameters_default["buck"]
+    aii = parameters_default["aii"]
+    alfa = parameters_default["alpha"]
+    rhow = parameters_default["rhow"]
+    numsteps_eq = parameters_default["numsteps_eq"]
+    dt_eq = parameters_default["dt_eq"]
 
-    #filename = simu_path + f'parameter/parameters{simnum}.yaml'
-    #with open(filename, 'rb') as f:
-        #parameters = yaml.load(f, Loader = yaml.CLoader)
+    filename = simu_path + f'parameter/parameters{simnum}.yaml'
+    with open(filename, 'rb') as f:
+        parameters = yaml.load(f, Loader = yaml.CLoader)
 
-    #kbt = parameters["kbt"]
+    kbt = parameters["kbt"]
     
-    # nevery = parameters["nevery_eq"]
-    # dt = parameters_default["dt_eq"]
+    nevery = parameters["nevery_eq"]
+    dt = parameters_default["dt_eq"]
     
-    # rate = buck * aii * rhow**2 * alfa / numsteps_eq / dt_eq
-    # p0 = rhow * kbt + alfa * aii * rhow**2
+    rate = buck * aii * rhow**2 * alfa / numsteps_eq / dt_eq
+    print('buck', buck, 'aii', aii, 'rhow', rhow, 'alfa', alfa, 'numsteps_eq', numsteps_eq, 'dt_eq', dt_eq)
+    p0 = rhow * kbt + alfa * aii * rhow**2
+    print('time', time, 'p0', p0, 'rate', rate)
+    press = p0 + rate * np.array(time) * nevery * dt  
+    print('press', press)
+    #print(press, vol_time)  
     
-    #press = p0 + rate * np.array(time) * nevery * dt    
-    
-    plt.plot(time, vol_time, marker = 'o', linestyle = '-', label = '$Nv = $' + f'{len(mesh.vertices)}')
+    plt.plot(press, vol_time, marker = 'o', linestyle = '-', label = '$Nv = $' + f'{len(mesh.vertices)}')
     plt.legend()
     plt.savefig(simu_path + f'volume_time.png')
-    
-    assert False
+
+    pbuckling = press[np.where(vol_time < 0.95*vol_time[0])[0][0]]
+    print('pbuckling', pbuckling)
 
     # Output the result 
     sample["Reference Evaluations"] += [pbuckling] 

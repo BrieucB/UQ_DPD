@@ -16,6 +16,8 @@ def generate_sim(source_path,
     import os 
     import yaml
 
+    print('par :', par)
+
     num_gpus = g
     num_nodes = N
 
@@ -23,12 +25,13 @@ def generate_sim(source_path,
     mem_per_gpu = 20  # Memory in GB per GPU, adjust as needed
     total_mem = mem_per_gpu * num_gpus
 
-
-    #os.system(f'cp {source_path}parameters-default.{obj}.yaml {simu_path}parameters-default.yaml')
+    print('[1]')
+    os.system(f'cp {source_path}parameters-default.{obj}.yaml {simu_path}parameters-default.yaml')
 
     if(par == None):
         os.system(f'mkdir -p {simu_path}parameter')
         os.system(f'rm -r {simu_path}parameter/* 2>/dev/null')
+        print('[2]')
         os.system(f'cp {source_path}parameters-default.{obj}.yaml {simu_path}parameter/parameters-default00001.yaml')
         cnt = 1
         
@@ -70,7 +73,7 @@ def generate_sim(source_path,
                         yaml.dump(parameters_default, f)
             return cnt
 
-        filename_default = source_path + 'parameters-default.yaml'
+        filename_default = simu_path + 'parameters-default.yaml'
         with open(filename_default, 'rb') as f:
             parameters_default = yaml.load(f, Loader = yaml.CLoader)
 
@@ -89,7 +92,8 @@ def generate_sim(source_path,
             num = f'{i + 1 :05d}'
             if(parallel):
                 file_commands.write(f'bash {runscript} --equil {num}eq {extra}\n')
-                os.system(f'cp {source_path}parameter/parameters-default{num}.yaml {simu_path}parameter/parameters-default{num}eq.yaml')
+                print('[3]')
+                os.system(f'cp {simu_path}parameter/parameters-default{num}.yaml {simu_path}parameter/parameters-default{num}eq.yaml')
                 if(first):
                     cnt_par += 1
                     cnt_sim += 1
@@ -101,6 +105,7 @@ def generate_sim(source_path,
                 if(first):
                     cnt_par += 1
                     cnt_sim += 1
+                    print('[4]')
                     os.system(f'cp {source_path}parameter/parameters-default{num}.yaml {simu_path}parameter/parameters-default{num}eq.yaml')
                     file_commands.write(f'bash {runscript} --equil {num}eq {extra}\n')
                     file_commands.write(f'bash {runscript} --restart {num} {extra}\n')
@@ -113,6 +118,7 @@ def generate_sim(source_path,
             for i in reversed(range(cnt - 1)):
                 num = f'{i + 1 :05d}'
                 sim = f'{cnt0 + cnt - 1 - i :05d}'
+                print('[5]')
                 os.system(f'cp {source_path}parameter/parameters-default{num}.yaml {simu_path}parameter/parameters-default{sim}.yaml')
                 cnt_par += 1
                 cnt_sim += 1
@@ -122,7 +128,7 @@ def generate_sim(source_path,
 
     cnt_sim, cnt_par = write_commands(f'{simu_path}commands.txt', 'run.sh', f'{2 * num_gpus}')
 
-    #os.system(f'rm {path}parameters-default.yaml')
+    os.system(f'rm {simu_path}parameters-default.yaml')
 
     print(f'Total number of generated parameter files = {cnt_par}')
 

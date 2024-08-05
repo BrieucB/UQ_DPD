@@ -71,6 +71,8 @@ def run_equil(source_path: str,
     timestart = (numsteps_eq * dt_eq if restart else 0.0)
     timeend = (numsteps_eq * dt_eq + numsteps * dt if restart else numsteps_eq * dt_eq)
 
+    print('numsteps:', numsteps, 'dt_eq:', dt_eq)
+
     pos_q = np.reshape(np.loadtxt(simu_path + 'posq.txt'), (-1, 7))
 
     ranks = (1, 1, 1)                       
@@ -187,7 +189,7 @@ def run_equil(source_path: str,
         #u.registerPlugins(mir.Plugins.createDumpXYZ('xyz_dump_gas', gas, nevery, f"{simu_path}trj_eq/sim{simnum}"))
         #u.registerPlugins(mir.Plugins.createVirialPressurePlugin('virial', water, predicate_all_domain, h, nevery, f'{simu_path}pressure/p' + simnum))
         #u.registerPlugins(mir.Plugins.createDumpObjectStats('objStats', emb, nevery, filename = simu_path + 'stats/object' + simnum))
-        u.run(numsteps, dt = dt)
+        u.run(numsteps, dt = dt_eq)
         del u
 
     if restart:
@@ -202,6 +204,7 @@ def run_equil(source_path: str,
 
 def main(argv):
     import argparse
+    
     ######################################################
     # set-up simulation type: equilibration or restart
 
@@ -217,7 +220,8 @@ def main(argv):
               simu_path    = '',
               simnum       = args.simnum,
               equil        = args.equil,
-              restart      = args.restart)
+              restart      = args.restart,
+              comm         = MPI.COMM_WORLD)
     
 
 if __name__ == '__main__':
