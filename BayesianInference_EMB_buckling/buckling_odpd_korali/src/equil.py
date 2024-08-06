@@ -2,6 +2,11 @@
 
 import sys
 from mpi4py import MPI
+import mirheo as mir
+import numpy as np
+import trimesh
+import yaml
+import os
 
 def run_equil(source_path: str,
               simu_path: str, 
@@ -10,12 +15,6 @@ def run_equil(source_path: str,
               restart: bool,
               comm: MPI.Comm):
     
-    import mirheo as mir
-    import numpy as np
-    import trimesh
-    import yaml
-    import os
-
     dir_name = simu_path + 'restart'
     if(restart):
         if os.path.isdir(dir_name):
