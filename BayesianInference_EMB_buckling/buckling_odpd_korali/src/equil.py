@@ -70,8 +70,6 @@ def run_equil(source_path: str,
     timestart = (numsteps_eq * dt_eq if restart else 0.0)
     timeend = (numsteps_eq * dt_eq + numsteps * dt if restart else numsteps_eq * dt_eq)
 
-    print('numsteps:', numsteps, 'dt_eq:', dt_eq)
-
     pos_q = np.reshape(np.loadtxt(simu_path + 'posq.txt'), (-1, 7))
 
     ranks = (1, 1, 1)                       

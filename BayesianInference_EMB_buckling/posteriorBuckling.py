@@ -120,8 +120,6 @@ def compute_pbuckling(sample,X):
     dt           = parameters_default["dt_eq"]
     
     rate  = buck * aii * rhow**2 * alfa / numsteps_eq / dt_eq
-    #p0    = rhow * kbt + alfa * aii * rhow**2
-    #press = p0 + rate * np.array(time) * nevery * dt
 
     p0 = rhow * kbt + alfa * aii * rhow**2
     press_0 = p0 + 2 * rate * np.array(time)

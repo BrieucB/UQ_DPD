@@ -16,8 +16,6 @@ def generate_sim(source_path,
     import os 
     import yaml
 
-    print('par :', par)
-
     num_gpus = g
     num_nodes = N
 
@@ -25,13 +23,11 @@ def generate_sim(source_path,
     mem_per_gpu = 20  # Memory in GB per GPU, adjust as needed
     total_mem = mem_per_gpu * num_gpus
 
-    print('[1]')
     os.system(f'cp {source_path}parameters-default.{obj}.yaml {simu_path}parameters-default.yaml')
 
     if(par == None):
         os.system(f'mkdir -p {simu_path}parameter')
         os.system(f'rm -r {simu_path}parameter/* 2>/dev/null')
-        print('[2]')
         os.system(f'cp {source_path}parameters-default.{obj}.yaml {simu_path}parameter/parameters-default00001.yaml')
         cnt = 1
         
@@ -92,7 +88,6 @@ def generate_sim(source_path,
             num = f'{i + 1 :05d}'
             if(parallel):
                 file_commands.write(f'bash {runscript} --equil {num}eq {extra}\n')
-                print('[3]')
                 os.system(f'cp {simu_path}parameter/parameters-default{num}.yaml {simu_path}parameter/parameters-default{num}eq.yaml')
                 if(first):
                     cnt_par += 1
@@ -105,7 +100,6 @@ def generate_sim(source_path,
                 if(first):
                     cnt_par += 1
                     cnt_sim += 1
-                    print('[4]')
                     os.system(f'cp {source_path}parameter/parameters-default{num}.yaml {simu_path}parameter/parameters-default{num}eq.yaml')
                     file_commands.write(f'bash {runscript} --equil {num}eq {extra}\n')
                     file_commands.write(f'bash {runscript} --restart {num} {extra}\n')
