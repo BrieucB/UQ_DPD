@@ -22,8 +22,7 @@ then
     export CUDA_VISIBLE_DEVICES=""
 fi
 
-
-echo -e "Global MPI rank ${RED} $OMPI_COMM_WORLD_RANK ${NC} running on node ${PURPLE} $NODE ${NC} under local rank $OMPI_COMM_WORLD_LOCAL_RANK runs on GPU $CUDA_VISIBLE_DEVICES" | sort
+echo -e "Global MPI rank ${RED} $OMPI_COMM_WORLD_RANK ${NC} running on node ${PURPLE} $NODE ${NC} under local rank $OMPI_COMM_WORLD_LOCAL_RANK runs on GPU $CUDA_VISIBLE_DEVICES" | sort >> log/gpu_bind.log
 
 # Let numa find the best cpu (-b = numa balancing)                                                                                                                                                                 
 numactl --all $@

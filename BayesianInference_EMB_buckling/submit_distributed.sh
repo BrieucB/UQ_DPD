@@ -6,7 +6,7 @@
 #SBATCH --ntasks=17                                                                                                                                                                                                
 #SBATCH --nodelist=compute-3-18,compute-6-1 #,compute-6-2 #compute-3-18                                                                                                                                            
 #SBATCH --partition=gpu                                                                                                                                                                                            
-#SBATCH --output=output.out                                                                                                                                                                                        
+#SBATCH --output=logs/korali.log                                                                                                                                                                                   
 #SBATCH --gres=gpu                                                                                                                                                                                                 
 
 module load cuda

@@ -11,7 +11,6 @@ import numpy as np
 import trimesh
 import yaml
 
-from buckling_odpd_korali.src.generate import generate_sim
 from buckling_odpd_korali.src.equil import run_equil
 from buckling_odpd_korali.src.parameters import write_parameters
 
@@ -73,6 +72,7 @@ def compute_pbuckling(sample,X):
       
     # Run the simulation
     comm.Barrier()
+    
     run_equil(source_path = init_buckling_path, 
               simu_path   = simu_path,
               simnum      = simnum,
@@ -98,7 +98,7 @@ def compute_pbuckling(sample,X):
     time     = [] 
     vol_time = []
     cnt      = 0
-    mesh     = trimesh.load_mesh(source_path + parameters_default["objFile"] )
+    mesh     = trimesh.load_mesh(source_buckling_path + parameters_default["objFile"] )
 
     for xyz in xyz_files:
         r = np.loadtxt(xyzpath + xyz, skiprows = 2)

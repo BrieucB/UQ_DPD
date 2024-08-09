@@ -20,8 +20,9 @@ source_buckling_path = 'buckling_odpd_korali/src/'
 init_buckling_path = 'init_buckling/'
 
 if rank == 0:
-  # Create the folder for the buckling simulations
+  # Prepare the directory
   os.system(f'mkdir -p {init_buckling_path}')
+  os.makedirs('logs', exist_ok=True)
 
   # Copy the mesh file to the buckling simulation folder
   os.system(f'cp {source_buckling_path}emb.off {init_buckling_path}')
@@ -39,20 +40,16 @@ if rank == 0:
               first       = None, 
               numJobs     = 1)
 
-  comm.Barrier()
+  #comm.Barrier()
 
   # Convert data into DPD units
   convertToDPDUnits('data/data_X_pbuckling.dat')
-comm.Barrier()
 
-if rank == 0:
-      os.makedirs('logs', exist_ok=True)
-      with open("logs/korali.log", "a") as f:
-        f.write(f"[Korali setup] Number of ranks: {comm.Get_size()}\n")
-        f.write(f"[Korali setup] Parameters: {params}\n")
-        f.write(f"[Korali setup] Running the inference for:\n")
-        f.write(f"[Korali setup] X-reference: {getReferencePoints()}\n")
-        f.write(f"[Korali setup] Y-reference: {getReferenceData()}\n")
+  print(f"[Korali] Number of ranks: {comm.Get_size()}")
+  print(f"[Korali] Parameters: {params}")
+  print(f"[Korali] Running the inference for:")
+  print(f"[Korali] X-reference: {getReferencePoints()}")
+  print(f"[Korali] Y-reference: {getReferenceData()}")
 
 e = korali.Experiment()
 
@@ -72,7 +69,7 @@ e["Solver"]["Covariance Scaling"] = 0.04
 e["Distributions"][0]["Name"] = "Prior ka"
 e["Distributions"][0]["Type"] = "Univariate/Uniform"
 e["Distributions"][0]["Minimum"] = +420000.
-e["Distributions"][0]["Maximum"] = +430000.
+e["Distributions"][0]["Maximum"] = +600000.
 
 e["Distributions"][1]["Name"] = "Prior_sigma"
 e["Distributions"][1]["Type"] = "Univariate/Uniform"
@@ -92,6 +89,7 @@ e["Variables"][1]["Initial Value"] = +10.0
 e["File Output"]["Path"] = '_korali_result_tmcmc'
 e["File Output"]["Frequency"] = 1
 e["Console Output"]["Frequency"] = 1
+e["Console Output"]["Verbosity"] = "Detailed"
 
 # Storing sample information
 e["Store Sample Information"] = True

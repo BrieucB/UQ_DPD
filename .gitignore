@@ -82,3 +82,4 @@ BayesianInference_EMB_buckling/buckling_odpd_korali/src/parameter/
 BayesianInference_EMB_buckling/buckling_odpd_korali/src/run_HPC.sbatch
 BayesianInference_EMB_buckling/data/data_X_pbuckling_DPD copy.dat
 BayesianInference_EMB_buckling/init_buckling/
+BayesianInference_EMB_buckling/submit_distributed.sh
