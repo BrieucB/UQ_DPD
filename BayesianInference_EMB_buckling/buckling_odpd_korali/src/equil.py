@@ -30,7 +30,7 @@ def run_equil(source_path: str,
     ######################################################
     # set-up parameters
 
-    filename_default = simu_path + 'parameter/parameters-default' + simnum + '.yaml'
+    filename_default = source_path + 'parameter/parameters-default' + simnum + '.yaml'
     with open(filename_default, 'rb') as f:
         parameters_default = yaml.load(f, Loader = yaml.CLoader)
         
@@ -180,8 +180,8 @@ def run_equil(source_path: str,
     h = (1.0, 1.0, 1.0)
 
     if equil:
-        print('equilibration')
-        u.registerPlugins(mir.Plugins.createStats('stats', every = nevery))
+        #print('equilibration')
+        #u.registerPlugins(mir.Plugins.createStats('stats', every = nevery))
         u.registerPlugins(mir.Plugins.createDumpXYZ('xyz_dump', emb, nevery, f"{simu_path}trj_eq/sim{simnum}"))
         #u.registerPlugins(mir.Plugins.createDumpXYZ('xyz_dump_gas', gas, nevery, f"{simu_path}trj_eq/sim{simnum}"))
         #u.registerPlugins(mir.Plugins.createVirialPressurePlugin('virial', water, predicate_all_domain, h, nevery, f'{simu_path}pressure/p' + simnum))

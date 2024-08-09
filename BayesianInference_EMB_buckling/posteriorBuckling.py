@@ -21,7 +21,8 @@ def compute_pbuckling(sample,X):
   from mpi4py import MPI
 
   # Get source path
-  source_path = 'buckling_odpd_korali/src/'
+  source_buckling_path = 'buckling_odpd_korali/src/' #'init_buckling/'
+  init_buckling_path = 'init_buckling/'
   
   # Read parameters to be optimized from Korali
   ka, sig = sample["Parameters"]
@@ -50,38 +51,38 @@ def compute_pbuckling(sample,X):
     simu_path = folder + name
     simnum    = '%05d'%1
     n_ref    += 1
-    os.system(f'mkdir -p {simu_path}')
+    os.system(f'mkdir -p {simu_path}parameter/')
 
     # Prepare the simulation
     if rank == 0:
-      generate_sim(source_path  = source_path, 
-                    simu_path   = simu_path,
-                    par         = [['buck', '25.0', '0.0', '1']], #None, 
-                    obj         = 'emb', 
-                    forward     = None, 
-                    hysteresis  = None, 
-                    parallel    = True, 
-                    g           = 1, 
-                    N           = 1, 
-                    first       = None, 
-                    numJobs     = 1)
+      # generate_sim(source_path  = source_path, 
+      #               simu_path   = simu_path,
+      #               par         = [['buck', '25.0', '0.0', '1']], #None, 
+      #               obj         = 'emb', 
+      #               forward     = None, 
+      #               hysteresis  = None, 
+      #               parallel    = True, 
+      #               g           = 1, 
+      #               N           = 1, 
+      #               first       = None, 
+      #               numJobs     = 1)
       
-      write_parameters(source_path  = source_path, 
+      write_parameters(source_path  = init_buckling_path, 
                         simu_path   = simu_path,
                         simnum      = simnum)
       
-    comm.Barrier()
-
     # Run the simulation
-    run_equil(source_path = source_path, 
+    comm.Barrier()
+    run_equil(source_path = init_buckling_path, 
               simu_path   = simu_path,
               simnum      = simnum,
               equil       = True,
               restart     = False,
               comm        = comm)
-    
+    ##assert False
+
     # Read the simulation parameters
-    filename_default = simu_path + 'parameter/parameters-default' + simnum + '.yaml'
+    filename_default = init_buckling_path + 'parameter/parameters-default' + simnum + '.yaml'
     with open(filename_default, 'rb') as f:
         parameters_default = yaml.load(f, Loader = yaml.CLoader)
 
@@ -149,3 +150,66 @@ def compute_pbuckling(sample,X):
     if dump == False:
       os.system(f'rm -rf {simu_path}trj_eq/')
       os.system(f'rm -f {simu_path}volume_time.png')
+
+
+def convertToDPDUnits(file):
+    """
+    Convert the data in the file to DPD units
+    """
+
+    # Get source path
+    source_buckling_path = 'buckling_odpd_korali/src/' #'init_buckling/'
+    init_buckling_path = 'init_buckling/'
+
+    # Load the scale factors
+    filename_default = init_buckling_path + 'parameter/parameters-default00001.yaml'
+
+    with open(filename_default, 'rb') as f:
+        parameters_default = yaml.load(f, Loader = yaml.CLoader)
+
+    ######################################################
+    # define variables
+
+    rho_water = parameters_default["rho_water"]
+    rho_gas = parameters_default["rho_gas"]
+    rhow = parameters_default["rhow"]
+    rhog = parameters_default["rhog"]
+    energyFactor = parameters_default["energyFactor"]
+    kbol = parameters_default["kbol"]
+    t0 = parameters_default["t0"]
+    Lx = parameters_default["Lx"]
+    Ly = parameters_default["Ly"]
+    Lz = parameters_default["Lz"]
+
+    ######################################################
+    # fundamental scales
+
+    ul = parameters_default["ul"]
+    ue = energyFactor * kbol * t0
+    um = rho_water * ul**3 / rhow
+    ut = np.sqrt(um * ul**2 / ue)
+    kbt = 1 / energyFactor
+
+    # Load the data
+    data = np.loadtxt(file, skiprows=1).reshape(-1, 2)
+
+    # Convert the data to DPD units
+    data[:,0] = data[:,0] / (um / ul**3)
+    data[:,1] = data[:,1] / (um * ul / ut**2)
+
+    # Write the data to a new file
+    np.savetxt(file[:-4]+'_DPD.dat', data, header='X Pressure')
+
+def getReferencePoints():
+  """
+  Returns the density in DPD units
+  """
+  list_rho_s=np.loadtxt('data/data_X_pbuckling_DPD.dat', skiprows=1).reshape(1,-1)[:,0]
+  return list(list_rho_s)
+
+def getReferenceData():
+  """
+  Returns the viscosity in DPD units
+  """
+  list_pb_s=np.loadtxt('data/data_X_pbuckling_DPD.dat', skiprows=1).reshape(1,-1)[:,1]
+  return list(list_pb_s)

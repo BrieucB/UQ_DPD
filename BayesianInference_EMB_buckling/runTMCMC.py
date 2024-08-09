@@ -1,23 +1,50 @@
 #!/usr/bin/env python3
 import sys
-sys.path.append('./model')
 import os 
-
 import korali
 from mpi4py import MPI
-from model.posteriorModel import getReferencePoints, getReferenceData
 import numpy as np
-from posteriorBuckling import compute_pbuckling
 
+from posteriorBuckling import compute_pbuckling, convertToDPDUnits, getReferencePoints, getReferenceData
+from buckling_odpd_korali.src.generate import generate_sim
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
 
 # Optimization parameters
 params   = np.loadtxt('metaparam.dat', skiprows=1) # pop_size, 
 pop_size = int(params[0])
 
-comm = MPI.COMM_WORLD
+# Generate parameter folder for buckling simulations
+source_buckling_path = 'buckling_odpd_korali/src/'
+init_buckling_path = 'init_buckling/'
+
+if rank == 0:
+  # Create the folder for the buckling simulations
+  os.system(f'mkdir -p {init_buckling_path}')
+
+  # Copy the mesh file to the buckling simulation folder
+  os.system(f'cp {source_buckling_path}emb.off {init_buckling_path}')
+
+  # Generate the initial buckling simulation
+  generate_sim(source_path  = source_buckling_path, 
+              simu_path   = init_buckling_path,
+              par         = [['buck', '25.0', '0.0', '1']],
+              obj         = 'emb', 
+              forward     = None, 
+              hysteresis  = None, 
+              parallel    = True, 
+              g           = 1, 
+              N           = 1, 
+              first       = None, 
+              numJobs     = 1)
+
+  comm.Barrier()
+
+  # Convert data into DPD units
+  convertToDPDUnits('data/data_X_pbuckling.dat')
 comm.Barrier()
 
-rank = comm.Get_rank()
 if rank == 0:
       os.makedirs('logs', exist_ok=True)
       with open("logs/korali.log", "a") as f:

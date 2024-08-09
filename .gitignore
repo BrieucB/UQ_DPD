@@ -80,3 +80,5 @@ BayesianInference_EMB_buckling/__pycache__/posteriorBuckling.cpython-310.pyc
 BayesianInference_EMB_buckling/buckling_odpd_korali/src/trj_eq/
 BayesianInference_EMB_buckling/buckling_odpd_korali/src/parameter/
 BayesianInference_EMB_buckling/buckling_odpd_korali/src/run_HPC.sbatch
+BayesianInference_EMB_buckling/data/data_X_pbuckling_DPD copy.dat
+BayesianInference_EMB_buckling/init_buckling/

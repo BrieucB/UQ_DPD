@@ -13,7 +13,8 @@ def write_parameters(source_path,
     filename = simu_path + 'parameter/parameters' + simnum + '.yaml'
     filename_prms = simu_path + 'parameter/parameters.prms' + simnum + '.yaml'
     filename_obmd = simu_path + 'parameter/parameters.obmd' + simnum + '.yaml'
-    filename_default = simu_path + 'parameter/parameters-default' + simnum + '.yaml'
+    #filename_default = simu_path + 'parameter/parameters-default' + simnum + '.yaml'
+    filename_default = source_path + 'parameter/parameters-default' + simnum + '.yaml'
 
     with open(filename_default, 'rb') as f:
         parameters_default = yaml.load(f, Loader = yaml.CLoader)
